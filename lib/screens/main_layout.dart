@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'resources_screen.dart';
+import 'ai_logs_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -24,10 +25,7 @@ class _MainLayoutState extends State<MainLayout> {
     const DashboardScreen(),
     const UsersScreen(),
     const ResourcesScreen(),
-    const Center(
-      child: Text("AI Logs Screen - Coming Soon",
-          style: TextStyle(fontSize: 18, color: Colors.grey)),
-    ),
+    const AILogsScreen(),
   ];
 
   Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
