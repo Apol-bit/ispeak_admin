@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
+import 'resources_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -22,10 +23,7 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const UsersScreen(),
-    const Center(
-      child: Text("Resources Screen - Coming Soon",
-          style: TextStyle(fontSize: 18, color: Colors.grey)),
-    ),
+    const ResourcesScreen(), // SWAPPED THIS OUT!
     const Center(
       child: Text("AI Logs Screen - Coming Soon",
           style: TextStyle(fontSize: 18, color: Colors.grey)),

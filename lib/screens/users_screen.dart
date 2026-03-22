@@ -21,7 +21,6 @@ class _UsersScreenState extends State<UsersScreen> {
     _fetchUsers();
   }
 
-  // UPDATED: Now grabs initials securely from First and Last Name
   String _getInitials(String fName, String lName, String uName) {
     if (fName.isNotEmpty && lName.isNotEmpty) {
       return '${fName[0]}${lName[0]}'.toUpperCase();
@@ -123,13 +122,13 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeProvider.of(context);
-    final isDark = theme?.isDarkMode ?? false;
+    // UPDATED: Now perfectly matches the ResourcesScreen setup
+    final theme = ThemeProvider.of(context)!;
+    final isDark = theme.isDarkMode;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -138,7 +137,7 @@ class _UsersScreenState extends State<UsersScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: theme?.headingColor ?? AppTheme.textPrimary,
+                color: theme.headingColor,
               ),
             ),
             ElevatedButton.icon(
@@ -158,151 +157,147 @@ class _UsersScreenState extends State<UsersScreen> {
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: theme?.cardColor ?? Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme?.borderColor ?? Colors.grey.shade200),
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.borderColor),
             ),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
                 : _users.isEmpty
                     ? Center(
                         child: Text("No users found.",
-                            style: TextStyle(color: theme?.subtleTextColor ?? Colors.grey)))
+                            style: TextStyle(color: theme.subtleTextColor)))
                     : LayoutBuilder(
                         builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                              child: SingleChildScrollView(
-                                child: DataTable(
-                                  columnSpacing: 32.0,
-                                  dataRowMaxHeight: 60.0, // Expanded slightly to fit the two lines of text
-                                  headingTextStyle: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: theme?.tableHeadColor ?? Colors.black87,
-                                  ),
-                                  columns: const [
-                                    DataColumn(label: Text('User Profile')),
-                                    DataColumn(label: Text('Email Address')),
-                                    DataColumn(label: Text('Date Joined')),
-                                    DataColumn(label: Text('Status Label')),
-                                    DataColumn(label: Text('Access Toggle')),
-                                    DataColumn(label: Text('Delete')),
-                                  ],
-                                  rows: _users.map((user) {
-                                    // Extract the new fields
-                                    String fName = user['firstName'] ?? '';
-                                    String lName = user['lastName'] ?? '';
-                                    String uName = user['username'] ?? 'Unknown';
-                                    
-                                    // Safely combine them
-                                    String fullName = (fName.isEmpty && lName.isEmpty) 
-                                        ? uName 
-                                        : '$fName $lName'.trim();
-                                        
-                                    String initials = _getInitials(fName, lName, uName);
-                                    bool isBanned = user['status'] == 'Banned';
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                child: Theme(
+                                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                  child: DataTable(
+                                    // UPDATED: Perfectly matches the background and text color now
+                                    headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                    headingTextStyle: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.headingColor,
+                                    ),
+                                    columnSpacing: 32.0,
+                                    horizontalMargin: 24.0,
+                                    dataRowMaxHeight: 70.0, 
+                                    columns: const [
+                                      DataColumn(label: Expanded(child: Text('User Profile'))),
+                                      DataColumn(label: Expanded(child: Text('Email Address'))),
+                                      DataColumn(label: Text('Date Joined')),
+                                      DataColumn(label: Text('Status')),
+                                      DataColumn(label: Text('Access')),
+                                      DataColumn(label: Text('Actions')),
+                                    ],
+                                    rows: _users.map((user) {
+                                      String fName = user['firstName'] ?? '';
+                                      String lName = user['lastName'] ?? '';
+                                      String uName = user['username'] ?? 'Unknown';
+                                      
+                                      String fullName = (fName.isEmpty && lName.isEmpty) 
+                                          ? uName 
+                                          : '$fName $lName'.trim();
+                                          
+                                      String initials = _getInitials(fName, lName, uName);
+                                      bool isBanned = user['status'] == 'Banned';
 
-                                    return DataRow(
-                                      color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                        return isDark ? AppTheme.darkSurface : null;
-                                      }),
-                                      cells: [
-                                        // 1. Profile Cell (Now shows Name + Username)
-                                        DataCell(
-                                          Row(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 18,
-                                                backgroundColor:
-                                                    AppTheme.primaryColor.withOpacity(0.1),
-                                                child: Text(
-                                                  initials,
-                                                  style: const TextStyle(
-                                                    color: AppTheme.primaryColor,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
+                                      return DataRow(
+                                        color: WidgetStateProperty.resolveWith<Color?>((states) {
+                                          return isDark ? AppTheme.darkSurface : theme.cardColor;
+                                        }),
+                                        cells: [
+                                          DataCell(
+                                            Row(
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 18,
+                                                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                                  child: Text(
+                                                    initials,
+                                                    style: const TextStyle(
+                                                      color: AppTheme.primaryColor,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    fullName,
-                                                    style: TextStyle(
-                                                      fontWeight: FontWeight.w600,
-                                                      color: theme?.bodyTextColor ?? Colors.black87,
+                                                const SizedBox(width: 12),
+                                                Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      fullName,
+                                                      style: TextStyle(
+                                                        fontWeight: FontWeight.w600,
+                                                        color: theme.bodyTextColor,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  Text(
-                                                    '@$uName',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey[500],
+                                                    Text(
+                                                      '@$uName',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[500],
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        // 2. Email
-                                        DataCell(Text(
-                                          user['email'] ?? 'No Email',
-                                          style: TextStyle(color: theme?.bodyTextColor ?? Colors.black87),
-                                        )),
-                                        // 3. Date
-                                        DataCell(Text(
-                                          _formatDate(user['createdAt']),
-                                          style: TextStyle(color: theme?.subtleTextColor ?? Colors.grey.shade700),
-                                        )),
-                                        // 4. Status Badge
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: isBanned
-                                                  ? Colors.red.withOpacity(0.15)
-                                                  : Colors.green.withOpacity(0.15),
-                                              borderRadius: BorderRadius.circular(20),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
-                                            child: Text(
-                                              user['status'] ?? 'Active',
-                                              style: TextStyle(
+                                          ),
+                                          DataCell(Text(
+                                            user['email'] ?? 'No Email',
+                                            style: TextStyle(color: theme.bodyTextColor),
+                                          )),
+                                          DataCell(Text(
+                                            _formatDate(user['createdAt']),
+                                            style: TextStyle(color: theme.subtleTextColor),
+                                          )),
+                                          DataCell(
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                              decoration: BoxDecoration(
                                                 color: isBanned
-                                                    ? Colors.red.shade400
-                                                    : Colors.green.shade400,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
+                                                    ? Colors.red.withOpacity(0.15)
+                                                    : Colors.green.withOpacity(0.15),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                user['status'] ?? 'Active',
+                                                style: TextStyle(
+                                                  color: isBanned
+                                                      ? Colors.red.shade400
+                                                      : Colors.green.shade400,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                        // 5. Toggle Switch
-                                        DataCell(
-                                          Switch(
-                                            value: !isBanned,
-                                            activeColor: Colors.green,
-                                            onChanged: (value) => _toggleUserStatus(user['_id']),
+                                          DataCell(
+                                            Switch(
+                                              value: !isBanned,
+                                              activeColor: Colors.green,
+                                              onChanged: (value) => _toggleUserStatus(user['_id']),
+                                            ),
                                           ),
-                                        ),
-                                        // 6. Delete
-                                        DataCell(
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline,
-                                                color: Colors.red, size: 22),
-                                            tooltip: 'Delete User',
-                                            // Pass the username to the delete confirmation pop-up
-                                            onPressed: () => _deleteUser(user['_id'], uName), 
+                                          DataCell(
+                                            IconButton(
+                                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                              tooltip: 'Delete User',
+                                              onPressed: () => _deleteUser(user['_id'], uName), 
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
                               ),
                             ),
