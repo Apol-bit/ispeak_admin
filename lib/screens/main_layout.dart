@@ -23,7 +23,7 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const UsersScreen(),
-    const ResourcesScreen(), // SWAPPED THIS OUT!
+    const ResourcesScreen(),
     const Center(
       child: Text("AI Logs Screen - Coming Soon",
           style: TextStyle(fontSize: 18, color: Colors.grey)),
@@ -119,7 +119,6 @@ class _MainLayoutState extends State<MainLayout> {
       ),
       child: Column(
         children: [
-          // ── HEADER ──────────────────────────────────────────────────
           // ── HEADER ──────────────────────────────────────────────────
           GestureDetector(
             onTap: () =>
@@ -360,16 +359,99 @@ class _MainLayoutState extends State<MainLayout> {
               letterSpacing: -0.3,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+          
+          // --- THE NEW ADMIN DROPDOWN MENU ---
+          Theme(
+            data: Theme.of(context).copyWith(
+              // Styles the popup menu background
+              popupMenuTheme: PopupMenuThemeData(
+                color: _isDarkMode ? AppTheme.darkSurface : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: _isDarkMode ? AppTheme.darkBorder : Colors.grey.shade200),
+                ),
+              ),
             ),
-            child: const CircleAvatar(
-              backgroundColor: AppTheme.primaryColor,
-              radius: 18,
-              child: Icon(Icons.admin_panel_settings, color: Colors.white),
+            child: PopupMenuButton<String>(
+              offset: const Offset(0, 50), // Drops the menu neatly below the icon
+              tooltip: 'Admin Account',
+              onSelected: (value) {
+                // Here is where we handle the clicks!
+                if (value == 'logout') {
+                  // TODO: Clear local storage/token and go to Login Screen
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logging out...')),
+                  );
+                } else if (value == 'profile') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile Settings coming soon!')),
+                  );
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                // 1. Admin Info Header
+                PopupMenuItem<String>(
+                  enabled: false, // Make this part unclickable, it's just for info
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Super Admin',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        'admin@ispeak.com',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                
+                // 2. Settings Option
+                PopupMenuItem<String>(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_outline, size: 20, color: _isDarkMode ? Colors.white70 : Colors.black87),
+                      const SizedBox(width: 12),
+                      Text('My Profile', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black87)),
+                    ],
+                  ),
+                ),
+                
+                // 3. Logout Option
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                      const SizedBox(width: 12),
+                      const Text('Log Out', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+              // The shield icon that triggers the menu
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor,
+                  radius: 18,
+                  child: Icon(Icons.admin_panel_settings, color: Colors.white),
+                ),
+              ),
             ),
           ),
         ],
