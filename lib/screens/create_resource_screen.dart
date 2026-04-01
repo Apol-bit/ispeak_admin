@@ -25,6 +25,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
   // --- Script Fields ---
   late String _content;
+  late int _estimatedMinutes; // NEW: Added for Scripts & Guided Tasks
 
   // --- Challenge Fields ---
   late int _timeLimitSeconds;
@@ -57,6 +58,8 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
     _language = r?['language'] ?? 'English';
     if (!['English', 'Filipino', 'Bilingual', 'None'].contains(_language)) _language = 'English';
 
+    // NEW: Pull estimatedMinutes from existing data, default to 2
+    _estimatedMinutes = r?['estimatedMinutes'] ?? 2;
     _content = r?['content'] ?? '';
 
     _timeLimitSeconds = r?['timeLimitSeconds'] ?? 60;
@@ -94,6 +97,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
       if (_type == 'Script') {
         payload['content'] = _content;
+        payload['estimatedMinutes'] = _estimatedMinutes; // NEW: Sending to backend
       } else if (_type == 'Challenge') {
         payload['timeLimitSeconds'] = _timeLimitSeconds;
         payload['targetMetric'] = _targetMetric;
@@ -104,6 +108,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
         payload['iconName'] = _iconName;
         payload['proTip'] = _proTip;
         payload['steps'] = _stepsRaw.split('\n').where((s) => s.trim().isNotEmpty).toList();
+        payload['estimatedMinutes'] = _estimatedMinutes; // NEW: Sending to backend
       }
 
       final response = isEdit
@@ -251,7 +256,16 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                   Divider(color: theme.borderColor),
                   const SizedBox(height: 24),
 
-                  if (_type == 'Script')
+                  if (_type == 'Script') ...[
+                    // NEW: Estimated Minutes field for Scripts
+                    TextFormField(
+                      initialValue: _estimatedMinutes.toString(),
+                      style: TextStyle(color: theme.bodyTextColor),
+                      decoration: _inputStyle('Estimated Time (Minutes)'),
+                      keyboardType: TextInputType.number,
+                      onSaved: (value) => _estimatedMinutes = int.tryParse(value ?? '2') ?? 2,
+                    ),
+                    const SizedBox(height: 20),
                     TextFormField(
                       initialValue: _content,
                       style: TextStyle(color: theme.bodyTextColor),
@@ -259,6 +273,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                       maxLines: 10,
                       onSaved: (value) => _content = value ?? '',
                     ),
+                  ],
 
                   if (_type == 'Challenge') ...[
                     Row(
@@ -322,6 +337,15 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 20),
+                    // NEW: Estimated Minutes field for Guided Tasks
+                    TextFormField(
+                      initialValue: _estimatedMinutes.toString(),
+                      style: TextStyle(color: theme.bodyTextColor),
+                      decoration: _inputStyle('Estimated Time (Minutes)'),
+                      keyboardType: TextInputType.number,
+                      onSaved: (value) => _estimatedMinutes = int.tryParse(value ?? '5') ?? 5,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
