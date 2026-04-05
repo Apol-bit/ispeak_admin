@@ -21,11 +21,9 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     _fetchSessionReviews();
   }
 
-  // 1. Fetching the Session Data from your Node.js backend
   Future<void> _fetchSessionReviews() async {
     setState(() => _isLoading = true);
     try {
-      // Keeping the endpoint the same so the backend doesn't break
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/ai-logs'));
       if (response.statusCode == 200) {
         setState(() {
@@ -39,7 +37,6 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     }
   }
 
-  // 2. Formatting the Date
   String _formatDate(String? isoDate) {
     if (isoDate == null) return "Unknown";
     try {
@@ -50,7 +47,6 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     }
   }
 
-  // 3. Dynamic Modal to Inspect the Session Output
   void _inspectSession(Map<String, dynamic> session) {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
@@ -67,7 +63,7 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Container(
                 width: 600,
-                height: MediaQuery.of(context).size.height * 0.7,
+                height: MediaQuery.of(context).size.height * 0.7, // Reset height since audio player is gone
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
