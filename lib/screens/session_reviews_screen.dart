@@ -21,10 +21,14 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     _fetchSessionReviews();
   }
 
+  // 1. Fetching the Session Data from your Node.js backend
   Future<void> _fetchSessionReviews() async {
     setState(() => _isLoading = true);
+
     try {
+      // Keeping the endpoint the same so the backend doesn't break
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/ai-logs'));
+
       if (response.statusCode == 200) {
         setState(() {
           _sessionReviews = jsonDecode(response.body);
@@ -37,8 +41,10 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     }
   }
 
+  // 2. Formatting the Date
   String _formatDate(String? isoDate) {
     if (isoDate == null) return "Unknown";
+
     try {
       final date = DateTime.parse(isoDate).toLocal();
       return '${date.month}/${date.day}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
@@ -47,6 +53,7 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     }
   }
 
+  // 3. Dynamic Modal to Inspect the Session Output
   void _inspectSession(Map<String, dynamic> session) {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
@@ -63,7 +70,7 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Container(
                 width: 600,
-                height: MediaQuery.of(context).size.height * 0.7, // Reset height since audio player is gone
+                height: MediaQuery.of(context).size.height * 0.7,
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,65 +209,69 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                         builder: (context, constraints) {
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(16),
+                            // ---> THE VERTICAL SCROLL FIX <---
                             child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                                child: Theme(
-                                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                  child: DataTable(
-                                    headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                                    headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.headingColor),
-                                    columnSpacing: 24.0,
-                                    horizontalMargin: 24.0,
-                                    dataRowMaxHeight: 60,
-                                    columns: const [
-                                      DataColumn(label: Text('Timestamp')),
-                                      DataColumn(label: Text('Session ID')),
-                                      DataColumn(label: Text('Audio Length')),
-                                      DataColumn(label: Text('Status')),
-                                      DataColumn(label: Text('Overall Score')),
-                                      DataColumn(label: Text('Action')),
-                                    ],
-                                    rows: _sessionReviews.map((session) {
-                                      String status = session['status'] ?? 'Pending';
-                                      Color statusColor = status == 'Completed' ? Colors.green 
-                                                        : status == 'Failed' ? Colors.red 
-                                                        : Colors.orange;
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                    child: DataTable(
+                                      headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                      headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.headingColor),
+                                      columnSpacing: 24.0,
+                                      horizontalMargin: 24.0,
+                                      dataRowMaxHeight: 60,
+                                      columns: const [
+                                        DataColumn(label: Text('Timestamp')),
+                                        DataColumn(label: Text('Session ID')),
+                                        DataColumn(label: Text('Audio Length')),
+                                        DataColumn(label: Text('Status')),
+                                        DataColumn(label: Text('Overall Score')),
+                                        DataColumn(label: Text('Action')),
+                                      ],
+                                      rows: _sessionReviews.map((session) {
+                                        String status = session['status'] ?? 'Pending';
+                                        Color statusColor = status == 'Completed' ? Colors.green 
+                                                          : status == 'Failed' ? Colors.red 
+                                                          : Colors.orange;
 
-                                      return DataRow(
-                                        color: WidgetStateProperty.resolveWith<Color?>((states) => isDark ? AppTheme.darkSurface : theme.cardColor),
-                                        cells: [
-                                          DataCell(Text(_formatDate(session['createdAt']), style: TextStyle(color: theme.subtleTextColor))),
-                                          DataCell(Text(session['_id'].toString().substring(0, 8) + '...', style: TextStyle(fontFamily: 'monospace', color: theme.bodyTextColor))),
-                                          DataCell(Text('${session['durationSeconds'] ?? 0} sec', style: TextStyle(color: theme.bodyTextColor))),
-                                          DataCell(
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: statusColor.withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(20),
-                                              ),
-                                              child: Text(
-                                                status,
-                                                style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                        return DataRow(
+                                          color: WidgetStateProperty.resolveWith<Color?>((states) => isDark ? AppTheme.darkSurface : theme.cardColor),
+                                          cells: [
+                                            DataCell(Text(_formatDate(session['createdAt']), style: TextStyle(color: theme.subtleTextColor))),
+                                            DataCell(Text(session['_id'].toString().substring(0, 8) + '...', style: TextStyle(fontFamily: 'monospace', color: theme.bodyTextColor))),
+                                            DataCell(Text('${session['durationSeconds'] ?? 0} sec', style: TextStyle(color: theme.bodyTextColor))),
+                                            DataCell(
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: statusColor.withOpacity(0.15),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  status,
+                                                  style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          DataCell(Text(
-                                            '${session['overallScore'] ?? '-'}',
-                                            style: TextStyle(fontWeight: FontWeight.bold, color: theme.bodyTextColor),
-                                          )),
-                                          DataCell(
-                                            IconButton(
-                                              icon: const Icon(Icons.troubleshoot, color: Colors.blue, size: 20),
-                                              tooltip: 'Inspect Session',
-                                              onPressed: () => _inspectSession(session),
+                                            DataCell(Text(
+                                              '${session['overallScore'] ?? '-'}',
+                                              style: TextStyle(fontWeight: FontWeight.bold, color: theme.bodyTextColor),
+                                            )),
+                                            DataCell(
+                                              IconButton(
+                                                icon: const Icon(Icons.troubleshoot, color: Colors.blue, size: 20),
+                                                tooltip: 'Inspect Session',
+                                                onPressed: () => _inspectSession(session),
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      );
-                                    }).toList(),
+                                          ],
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
                               ),

@@ -33,6 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _fetchGlobalStats(),
       _fetchRecentSessions(),
     ]);
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Dashboard data updated"), duration: Duration(seconds: 2)),
@@ -42,10 +43,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchGlobalStats() async {
     setState(() => _isLoadingStats = true);
+
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/stats'));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         setState(() {
           _totalUsers = data['totalUsers'] ?? 0;
           _totalSessions = data['totalSessions'] ?? 0;
@@ -61,8 +65,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchRecentSessions() async {
     setState(() => _isLoadingSessions = true);
+
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/recent-sessions'));
+
       if (response.statusCode == 200) {
         setState(() {
           _recentSessions = jsonDecode(response.body);
@@ -77,6 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _formatDate(String? isoDate) {
     if (isoDate == null) return "Unknown";
+
     try {
       final date = DateTime.parse(isoDate).toLocal();
       return '${date.month}/${date.day}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
@@ -87,7 +94,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // UPDATED: Now perfectly matches the ResourcesScreen setup
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
@@ -166,86 +172,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           builder: (context, constraints) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(16),
+                              // ---> THE VERTICAL SCROLL FIX <---
                               child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                                  child: Theme(
-                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                    child: DataTable(
-                                      // UPDATED: Perfectly matches the background and text color now
-                                      headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                                      headingTextStyle: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.headingColor,
-                                      ),
-                                      columnSpacing: 24.0,
-                                      horizontalMargin: 24.0,
-                                      dataRowMaxHeight: 60,
-                                      columns: const [
-                                        DataColumn(label: Expanded(child: Text('Date & Time'))),
-                                        DataColumn(label: Text('Session ID')),
-                                        DataColumn(label: Text('WPM')),
-                                        DataColumn(label: Text('Clarity')),
-                                        DataColumn(label: Text('Energy')),
-                                        DataColumn(label: Text('Overall')),
-                                        DataColumn(label: Text('Status')),
-                                      ],
-                                      rows: _recentSessions.map((session) {
-                                        int overall = (session['overallScore'] ?? 0).toInt();
-                                        bool isPending = overall == 0;
+                                scrollDirection: Axis.vertical,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                    child: Theme(
+                                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                      child: DataTable(
+                                        headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                        headingTextStyle: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.headingColor,
+                                        ),
+                                        columnSpacing: 24.0,
+                                        horizontalMargin: 24.0,
+                                        dataRowMaxHeight: 60,
+                                        columns: const [
+                                          DataColumn(label: Expanded(child: Text('Date & Time'))),
+                                          DataColumn(label: Text('Session ID')),
+                                          DataColumn(label: Text('WPM')),
+                                          DataColumn(label: Text('Clarity')),
+                                          DataColumn(label: Text('Energy')),
+                                          DataColumn(label: Text('Overall')),
+                                          DataColumn(label: Text('Status')),
+                                        ],
+                                        rows: _recentSessions.map((session) {
+                                          int overall = (session['overallScore'] ?? 0).toInt();
+                                          bool isPending = overall == 0;
 
-                                        return DataRow(
-                                          color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                            return isDark ? AppTheme.darkSurface : theme.cardColor;
-                                          }),
-                                          cells: [
-                                            DataCell(Text(_formatDate(session['createdAt']),
-                                                style: TextStyle(color: theme.subtleTextColor))),
-                                            DataCell(Text(
-                                              session['_id'].toString().substring(0, 8) + '...',
-                                              style: TextStyle(
-                                                fontFamily: 'monospace',
-                                                color: theme.bodyTextColor,
-                                              ),
-                                            )),
-                                            DataCell(Text('${session['wpmScore'] ?? 0}',
-                                                style: TextStyle(color: theme.bodyTextColor))),
-                                            DataCell(Text('${session['clarityScore'] ?? 0}', 
-                                                style: TextStyle(color: theme.bodyTextColor))),
-                                            DataCell(Text('${session['energyScore'] ?? 0}',
-                                                style: TextStyle(color: theme.bodyTextColor))),
-                                            DataCell(Text(
-                                              '$overall',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: isPending
-                                                    ? theme.subtleTextColor
-                                                    : AppTheme.primaryColor,
-                                              ),
-                                            )),
-                                            DataCell(
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: isPending
-                                                      ? Colors.orange.withOpacity(0.15)
-                                                      : Colors.green.withOpacity(0.15),
-                                                  borderRadius: BorderRadius.circular(20),
+                                          return DataRow(
+                                            color: WidgetStateProperty.resolveWith<Color?>((states) {
+                                              return isDark ? AppTheme.darkSurface : theme.cardColor;
+                                            }),
+                                            cells: [
+                                              DataCell(Text(_formatDate(session['createdAt']),
+                                                  style: TextStyle(color: theme.subtleTextColor))),
+                                              DataCell(Text(
+                                                session['_id'].toString().substring(0, 8) + '...',
+                                                style: TextStyle(
+                                                  fontFamily: 'monospace',
+                                                  color: theme.bodyTextColor,
                                                 ),
-                                                child: Text(
-                                                  isPending ? 'Pending AI' : 'Processed',
-                                                  style: TextStyle(
-                                                    color: isPending ? Colors.orange.shade400 : Colors.green.shade400,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                              )),
+                                              DataCell(Text('${session['wpmScore'] ?? 0}',
+                                                  style: TextStyle(color: theme.bodyTextColor))),
+                                              DataCell(Text('${session['clarityScore'] ?? 0}', 
+                                                  style: TextStyle(color: theme.bodyTextColor))),
+                                              DataCell(Text('${session['energyScore'] ?? 0}',
+                                                  style: TextStyle(color: theme.bodyTextColor))),
+                                              DataCell(Text(
+                                                '$overall',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isPending
+                                                      ? theme.subtleTextColor
+                                                      : AppTheme.primaryColor,
+                                                ),
+                                              )),
+                                              DataCell(
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: isPending
+                                                        ? Colors.orange.withOpacity(0.15)
+                                                        : Colors.green.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Text(
+                                                    isPending ? 'Pending AI' : 'Processed',
+                                                    style: TextStyle(
+                                                      color: isPending ? Colors.orange.shade400 : Colors.green.shade400,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
                                     ),
                                   ),
                                 ),

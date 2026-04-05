@@ -33,8 +33,10 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
+
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/users'));
+
       if (response.statusCode == 200) {
         setState(() {
           _users = jsonDecode(response.body);
@@ -52,9 +54,11 @@ class _UsersScreenState extends State<UsersScreen> {
       "Delete $name?",
       "This action is permanent and will remove all their speech data.",
     );
+
     if (confirm) {
       try {
         final response = await http.delete(Uri.parse('${ApiConfig.baseUrl}/users/$id'));
+
         if (response.statusCode == 200) {
           _fetchUsers();
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User deleted")));
@@ -70,6 +74,7 @@ class _UsersScreenState extends State<UsersScreen> {
       final response = await http.patch(
         Uri.parse('${ApiConfig.baseUrl}/users/$userId/status'),
       );
+
       if (response.statusCode == 200) {
         setState(() {
           final index = _users.indexWhere((u) => u['_id'] == userId);
@@ -112,6 +117,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
   String _formatDate(String? isoDate) {
     if (isoDate == null) return "Unknown";
+
     try {
       final date = DateTime.parse(isoDate).toLocal();
       return '${date.month}/${date.day}/${date.year}';
@@ -122,7 +128,6 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // UPDATED: Now perfectly matches the ResourcesScreen setup
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
@@ -171,73 +176,75 @@ class _UsersScreenState extends State<UsersScreen> {
                         builder: (context, constraints) {
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(16),
+                            // ---> THE VERTICAL SCROLL FIX <---
                             child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                                child: Theme(
-                                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                  child: DataTable(
-                                    // UPDATED: Perfectly matches the background and text color now
-                                    headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                                    headingTextStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.headingColor,
-                                    ),
-                                    columnSpacing: 32.0,
-                                    horizontalMargin: 24.0,
-                                    dataRowMaxHeight: 70.0, 
-                                    columns: const [
-                                      DataColumn(label: Expanded(child: Text('User Profile'))),
-                                      DataColumn(label: Expanded(child: Text('Email Address'))),
-                                      DataColumn(label: Text('Date Joined')),
-                                      DataColumn(label: Text('Status')),
-                                      DataColumn(label: Text('Access')),
-                                      DataColumn(label: Text('Actions')),
-                                    ],
-                                    rows: _users.map((user) {
-                                      String fName = user['firstName'] ?? '';
-                                      String lName = user['lastName'] ?? '';
-                                      String uName = user['username'] ?? 'Unknown';
-                                      
-                                      String fullName = (fName.isEmpty && lName.isEmpty) 
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                    child: DataTable(
+                                      headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                      headingTextStyle: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.headingColor,
+                                      ),
+                                      columnSpacing: 32.0,
+                                      horizontalMargin: 24.0,
+                                      dataRowMaxHeight: 70.0, 
+                                      columns: const [
+                                        DataColumn(label: Expanded(child: Text('User Profile'))),
+                                        DataColumn(label: Expanded(child: Text('Email Address'))),
+                                        DataColumn(label: Text('Date Joined')),
+                                        DataColumn(label: Text('Status')),
+                                        DataColumn(label: Text('Access')),
+                                        DataColumn(label: Text('Actions')),
+                                      ],
+                                      rows: _users.map((user) {
+                                        String fName = user['firstName'] ?? '';
+                                        String lName = user['lastName'] ?? '';
+                                        String uName = user['username'] ?? 'Unknown';
+
+                                        String fullName = (fName.isEmpty && lName.isEmpty) 
                                           ? uName 
                                           : '$fName $lName'.trim();
-                                          
-                                      String initials = _getInitials(fName, lName, uName);
-                                      bool isBanned = user['status'] == 'Banned';
 
-                                      return DataRow(
-                                        color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                          return isDark ? AppTheme.darkSurface : theme.cardColor;
-                                        }),
-                                        cells: [
-                                          DataCell(
-                                            Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 18,
-                                                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                                                  child: Text(
-                                                    initials,
-                                                    style: const TextStyle(
-                                                      color: AppTheme.primaryColor,
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 12,
+                                        String initials = _getInitials(fName, lName, uName);
+                                        bool isBanned = user['status'] == 'Banned';
+
+                                        return DataRow(
+                                          color: WidgetStateProperty.resolveWith<Color?>((states) {
+                                            return isDark ? AppTheme.darkSurface : theme.cardColor;
+                                          }),
+                                          cells: [
+                                            DataCell(
+                                              Row(
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 18,
+                                                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                                    child: Text(
+                                                      initials,
+                                                      style: const TextStyle(
+                                                        color: AppTheme.primaryColor,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 12,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      fullName,
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w600,
-                                                        color: theme.bodyTextColor,
-                                                      ),
+                                                  const SizedBox(width: 12),
+                                                  Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        fullName,
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.w600,
+                                                          color: theme.bodyTextColor,
+                                                        ),
                                                     ),
                                                     Text(
                                                       '@$uName',
@@ -301,9 +308,10 @@ class _UsersScreenState extends State<UsersScreen> {
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    ),
           ),
         ),
       ],
