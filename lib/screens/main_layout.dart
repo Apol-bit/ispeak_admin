@@ -3,7 +3,7 @@ import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'resources_screen.dart';
-import 'ai_logs_screen.dart';
+import 'session_reviews_screen.dart'; // Ensure this matches your file name!
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -25,7 +25,7 @@ class _MainLayoutState extends State<MainLayout> {
     const DashboardScreen(),
     const UsersScreen(),
     const ResourcesScreen(),
-    const AILogsScreen(),
+    const SessionReviewsScreen(), // UPDATED CLASS NAME HERE
   ];
 
   Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
@@ -174,7 +174,8 @@ class _MainLayoutState extends State<MainLayout> {
           _navItem(Icons.dashboard, "Dashboard", 0),
           _navItem(Icons.people, "Users", 1),
           _navItem(Icons.library_books, "Resources", 2),
-          _navItem(Icons.analytics, "AI Logs", 3),
+          // UPDATED SIDEBAR LABEL HERE
+          _navItem(Icons.analytics, "Session Reviews", 3),
 
           const Spacer(),
 
@@ -494,7 +495,8 @@ class _MainLayoutState extends State<MainLayout> {
             _drawerItem(Icons.dashboard, "Dashboard", 0),
             _drawerItem(Icons.people, "Users", 1),
             _drawerItem(Icons.library_books, "Resources", 2),
-            _drawerItem(Icons.analytics, "AI Logs", 3),
+            // UPDATED DRAWER LABEL HERE
+            _drawerItem(Icons.analytics, "Session Reviews", 3),
             const Spacer(),
             ListTile(
               leading: Icon(
