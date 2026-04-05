@@ -4,36 +4,36 @@ import 'dart:convert';
 import '../config/api_config.dart';
 import '../theme/app_theme.dart';
 
-class AILogsScreen extends StatefulWidget {
-  const AILogsScreen({super.key});
+class SessionReviewsScreen extends StatefulWidget {
+  const SessionReviewsScreen({super.key});
 
   @override
-  State<AILogsScreen> createState() => _AILogsScreenState();
+  State<SessionReviewsScreen> createState() => _SessionReviewsScreenState();
 }
 
-class _AILogsScreenState extends State<AILogsScreen> {
+class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
   bool _isLoading = false;
-  List<dynamic> _aiLogs = [];
+  List<dynamic> _sessionReviews = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchAILogs();
+    _fetchSessionReviews();
   }
 
-  // 1. Fetching the AI Processing Logs from your Node.js backend
-  Future<void> _fetchAILogs() async {
+  // 1. Fetching the Session Data from your Node.js backend
+  Future<void> _fetchSessionReviews() async {
     setState(() => _isLoading = true);
     try {
-      // Assuming you have an endpoint that returns detailed session/AI logs
+      // Keeping the endpoint the same so the backend doesn't break
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/ai-logs'));
       if (response.statusCode == 200) {
         setState(() {
-          _aiLogs = jsonDecode(response.body);
+          _sessionReviews = jsonDecode(response.body);
         });
       }
     } catch (e) {
-      debugPrint("Error fetching AI logs: $e");
+      debugPrint("Error fetching session reviews: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -50,8 +50,8 @@ class _AILogsScreenState extends State<AILogsScreen> {
     }
   }
 
-  // 3. Dynamic Modal to Inspect the Raw AI Output
-  void _inspectAILog(Map<String, dynamic> log) {
+  // 3. Dynamic Modal to Inspect the Session Output
+  void _inspectSession(Map<String, dynamic> session) {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
@@ -76,7 +76,7 @@ class _AILogsScreenState extends State<AILogsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "AI Analysis Details",
+                          "Session Analysis Details",
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: modalTheme.headingColor),
                         ),
                         IconButton(
@@ -92,20 +92,20 @@ class _AILogsScreenState extends State<AILogsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLogSection("Session ID", log['_id'] ?? 'Unknown', modalTheme),
-                            _buildLogSection("User ID", log['userId'] ?? 'Unknown', modalTheme),
+                            _buildDetailSection("Session ID", session['_id'] ?? 'Unknown', modalTheme),
+                            _buildDetailSection("User ID", session['userId'] ?? 'Unknown', modalTheme),
                             const SizedBox(height: 16),
-                            _buildLogSection("Raw Transcription", log['transcription'] ?? 'No transcription available.', modalTheme, isCode: true),
+                            _buildDetailSection("Raw Transcription", session['transcription'] ?? 'No transcription available.', modalTheme, isCode: true),
                             const SizedBox(height: 16),
-                            _buildLogSection("AI Feedback Summary", log['aiFeedback'] ?? 'AI is still processing or failed to generate feedback.', modalTheme),
+                            _buildDetailSection("AI Feedback Summary", session['aiFeedback'] ?? 'AI is still processing or failed to generate feedback.', modalTheme),
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _scoreBadge("WPM", log['wpmScore']?.toString() ?? '0', Colors.blue),
-                                _scoreBadge("Clarity", log['clarityScore']?.toString() ?? '0', Colors.green),
-                                _scoreBadge("Energy", log['energyScore']?.toString() ?? '0', Colors.orange),
-                                _scoreBadge("Overall", log['overallScore']?.toString() ?? '0', AppTheme.primaryColor),
+                                _scoreBadge("WPM", session['wpmScore']?.toString() ?? '0', Colors.blue),
+                                _scoreBadge("Clarity", session['clarityScore']?.toString() ?? '0', Colors.green),
+                                _scoreBadge("Energy", session['energyScore']?.toString() ?? '0', Colors.orange),
+                                _scoreBadge("Overall", session['overallScore']?.toString() ?? '0', AppTheme.primaryColor),
                               ],
                             ),
                           ],
@@ -122,7 +122,7 @@ class _AILogsScreenState extends State<AILogsScreen> {
     );
   }
 
-  Widget _buildLogSection(String title, String content, dynamic theme, {bool isCode = false}) {
+  Widget _buildDetailSection(String title, String content, dynamic theme, {bool isCode = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -175,13 +175,13 @@ class _AILogsScreenState extends State<AILogsScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "AI Processing Logs",
+              "Session Reviews",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.headingColor),
             ),
             ElevatedButton.icon(
-              onPressed: _fetchAILogs,
+              onPressed: _fetchSessionReviews,
               icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
-              label: const Text("Refresh Logs", style: TextStyle(color: Colors.white)),
+              label: const Text("Refresh Reviews", style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -200,8 +200,8 @@ class _AILogsScreenState extends State<AILogsScreen> {
             ),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                : _aiLogs.isEmpty
-                    ? Center(child: Text("No AI logs found.", style: TextStyle(color: theme.subtleTextColor)))
+                : _sessionReviews.isEmpty
+                    ? Center(child: Text("No session reviews found.", style: TextStyle(color: theme.subtleTextColor)))
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           return ClipRRect(
@@ -226,8 +226,8 @@ class _AILogsScreenState extends State<AILogsScreen> {
                                       DataColumn(label: Text('Overall Score')),
                                       DataColumn(label: Text('Action')),
                                     ],
-                                    rows: _aiLogs.map((log) {
-                                      String status = log['status'] ?? 'Pending';
+                                    rows: _sessionReviews.map((session) {
+                                      String status = session['status'] ?? 'Pending';
                                       Color statusColor = status == 'Completed' ? Colors.green 
                                                         : status == 'Failed' ? Colors.red 
                                                         : Colors.orange;
@@ -235,9 +235,9 @@ class _AILogsScreenState extends State<AILogsScreen> {
                                       return DataRow(
                                         color: WidgetStateProperty.resolveWith<Color?>((states) => isDark ? AppTheme.darkSurface : theme.cardColor),
                                         cells: [
-                                          DataCell(Text(_formatDate(log['createdAt']), style: TextStyle(color: theme.subtleTextColor))),
-                                          DataCell(Text(log['_id'].toString().substring(0, 8) + '...', style: TextStyle(fontFamily: 'monospace', color: theme.bodyTextColor))),
-                                          DataCell(Text('${log['durationSeconds'] ?? 0} sec', style: TextStyle(color: theme.bodyTextColor))),
+                                          DataCell(Text(_formatDate(session['createdAt']), style: TextStyle(color: theme.subtleTextColor))),
+                                          DataCell(Text(session['_id'].toString().substring(0, 8) + '...', style: TextStyle(fontFamily: 'monospace', color: theme.bodyTextColor))),
+                                          DataCell(Text('${session['durationSeconds'] ?? 0} sec', style: TextStyle(color: theme.bodyTextColor))),
                                           DataCell(
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -252,14 +252,14 @@ class _AILogsScreenState extends State<AILogsScreen> {
                                             ),
                                           ),
                                           DataCell(Text(
-                                            '${log['overallScore'] ?? '-'}',
+                                            '${session['overallScore'] ?? '-'}',
                                             style: TextStyle(fontWeight: FontWeight.bold, color: theme.bodyTextColor),
                                           )),
                                           DataCell(
                                             IconButton(
                                               icon: const Icon(Icons.troubleshoot, color: Colors.blue, size: 20),
-                                              tooltip: 'Inspect AI Output',
-                                              onPressed: () => _inspectAILog(log),
+                                              tooltip: 'Inspect Session',
+                                              onPressed: () => _inspectSession(session),
                                             ),
                                           ),
                                         ],
