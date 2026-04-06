@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
-import 'screens/main_layout.dart';
-import 'screens/login_screen.dart'; // <--- ADDED THIS IMPORT
+import 'screens/login_screen.dart';
 
 void main() {
   runApp(const AdminPanelApp());
