@@ -3,7 +3,8 @@ import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'resources_screen.dart';
-import 'session_reviews_screen.dart'; // Ensure this matches your file name!
+import 'session_reviews_screen.dart'; 
+import 'login_screen.dart'; // <--- ADDED LOGIN IMPORT
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -25,7 +26,7 @@ class _MainLayoutState extends State<MainLayout> {
     const DashboardScreen(),
     const UsersScreen(),
     const ResourcesScreen(),
-    const SessionReviewsScreen(), // UPDATED CLASS NAME HERE
+    const SessionReviewsScreen(), 
   ];
 
   Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
@@ -174,7 +175,6 @@ class _MainLayoutState extends State<MainLayout> {
           _navItem(Icons.dashboard, "Dashboard", 0),
           _navItem(Icons.people, "Users", 1),
           _navItem(Icons.library_books, "Resources", 2),
-          // UPDATED SIDEBAR LABEL HERE
           _navItem(Icons.analytics, "Session Reviews", 3),
 
           const Spacer(),
@@ -359,10 +359,8 @@ class _MainLayoutState extends State<MainLayout> {
             ),
           ),
           
-          // --- THE NEW ADMIN DROPDOWN MENU ---
           Theme(
             data: Theme.of(context).copyWith(
-              // Styles the popup menu background
               popupMenuTheme: PopupMenuThemeData(
                 color: _isDarkMode ? AppTheme.darkSurface : Colors.white,
                 shape: RoundedRectangleBorder(
@@ -372,15 +370,24 @@ class _MainLayoutState extends State<MainLayout> {
               ),
             ),
             child: PopupMenuButton<String>(
-              offset: const Offset(0, 50), // Drops the menu neatly below the icon
+              offset: const Offset(0, 50),
               tooltip: 'Admin Account',
-              onSelected: (value) {
-                // Here is where we handle the clicks!
+              // ---> THE LOGOUT ROUTING FIX <---
+              onSelected: (value) async {
                 if (value == 'logout') {
-                  // TODO: Clear local storage/token and go to Login Screen
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Logging out...')),
                   );
+                  
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  
+                  if (!mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false, 
+                  );
+                  
                 } else if (value == 'profile') {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Profile Settings coming soon!')),
@@ -388,9 +395,8 @@ class _MainLayoutState extends State<MainLayout> {
                 }
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                // 1. Admin Info Header
                 PopupMenuItem<String>(
-                  enabled: false, // Make this part unclickable, it's just for info
+                  enabled: false, 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -414,7 +420,6 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
                 const PopupMenuDivider(),
                 
-                // 2. Settings Option
                 PopupMenuItem<String>(
                   value: 'profile',
                   child: Row(
@@ -426,7 +431,6 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
                 
-                // 3. Logout Option
                 PopupMenuItem<String>(
                   value: 'logout',
                   child: Row(
@@ -438,7 +442,6 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
               ],
-              // The shield icon that triggers the menu
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -495,7 +498,6 @@ class _MainLayoutState extends State<MainLayout> {
             _drawerItem(Icons.dashboard, "Dashboard", 0),
             _drawerItem(Icons.people, "Users", 1),
             _drawerItem(Icons.library_books, "Resources", 2),
-            // UPDATED DRAWER LABEL HERE
             _drawerItem(Icons.analytics, "Session Reviews", 3),
             const Spacer(),
             ListTile(

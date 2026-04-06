@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_layout.dart';
+import 'screens/login_screen.dart'; // <--- ADDED THIS IMPORT
 
 void main() {
   runApp(const AdminPanelApp());
@@ -19,7 +20,7 @@ class AdminPanelApp extends StatelessWidget {
         scaffoldBackgroundColor: AppTheme.backgroundColor,
         fontFamily: AppTheme.fontFamily, 
       ),
-      home: const MainLayout(),
+      home: const LoginScreen(),
     );
   }
 }
