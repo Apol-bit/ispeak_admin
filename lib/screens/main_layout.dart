@@ -4,10 +4,19 @@ import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'resources_screen.dart';
 import 'session_reviews_screen.dart'; 
-import 'login_screen.dart'; // <--- ADDED LOGIN IMPORT
+import 'login_screen.dart'; 
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  // ---> NEW: Added variables to receive the real admin data <---
+  final String adminName;
+  final String adminEmail;
+
+  // Added required parameters to the constructor
+  const MainLayout({
+    super.key, 
+    required this.adminName, 
+    required this.adminEmail
+  });
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -372,7 +381,6 @@ class _MainLayoutState extends State<MainLayout> {
             child: PopupMenuButton<String>(
               offset: const Offset(0, 50),
               tooltip: 'Admin Account',
-              // ---> THE LOGOUT ROUTING FIX <---
               onSelected: (value) async {
                 if (value == 'logout') {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -400,15 +408,16 @@ class _MainLayoutState extends State<MainLayout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ---> NEW: Using the dynamic widget variables here! <---
                       Text(
-                        'Super Admin',
+                        widget.adminName, 
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: _isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                       Text(
-                        'admin@ispeak.com',
+                        widget.adminEmail, 
                         style: TextStyle(
                           fontSize: 12,
                           color: _isDarkMode ? Colors.grey[400] : Colors.grey[600],

@@ -26,8 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-
-  // SECURE Admin Authentication Logic connecting to Node.js Backend
   // SECURE Admin Authentication Logic connecting to Node.js Backend
   Future<void> _handleLogin() async {
     final isValid = _formKey.currentState!.validate();
@@ -63,9 +61,13 @@ class _LoginScreenState extends State<LoginScreen> {
             );
             
             Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MainLayout()),
-            );
+            context,
+            MaterialPageRoute(builder: (context) => MainLayout(
+              // Safely grab the first name and last name, fallback to "Super Admin" if missing
+              adminName: '${data['user']?['firstName'] ?? 'Super'} ${data['user']?['lastName'] ?? 'Admin'}'.trim(),
+              adminEmail: data['user']?['email'] ?? 'admin@ispeak.com',
+            )),
+          );
           } else {
             // BLOCK REGULAR USERS
             if (!mounted) return;
