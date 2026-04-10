@@ -33,13 +33,14 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
-
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/users'));
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body); // It's a map now!
         setState(() {
-          _users = jsonDecode(response.body);
+          // Point directly to the activeUsers key
+          _users = data['activeUsers'] ?? []; 
         });
       }
     } catch (e) {
@@ -49,22 +50,28 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  Future<void> _deleteUser(String id, String name) async {
+  // --- NEW: Archive Function replaces Delete ---
+  Future<void> _archiveUser(String id, String name) async {
     bool confirm = await _showConfirmDialog(
-      "Delete $name?",
-      "This action is permanent and will remove all their speech data.",
+      "Archive $name?",
+      "This will revoke their access to the app, but keep their speech data safe for your analytics.",
+      "Archive User",
+      Colors.orange,
     );
 
     if (confirm) {
       try {
-        final response = await http.delete(Uri.parse('${ApiConfig.baseUrl}/users/$id'));
+        // Adjust this endpoint if your backend router path is slightly different!
+        final response = await http.put(Uri.parse('${ApiConfig.baseUrl}/users/$id/archive'));
 
         if (response.statusCode == 200) {
-          _fetchUsers();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User deleted")));
+          _fetchUsers(); // Refresh the list so they disappear
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User safely archived"))
+          );
         }
       } catch (e) {
-        debugPrint("Error deleting user: $e");
+        debugPrint("Error archiving user: $e");
       }
     }
   }
@@ -94,7 +101,8 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  Future<bool> _showConfirmDialog(String title, String content) async {
+  // --- UPDATED: Dynamic Confirm Dialog ---
+  Future<bool> _showConfirmDialog(String title, String content, String confirmText, Color confirmColor) async {
     return await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -106,8 +114,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   child: const Text("Cancel")),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text("Confirm Delete",
-                    style: TextStyle(color: Colors.red)),
+                child: Text(confirmText, style: TextStyle(color: confirmColor, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -170,13 +177,12 @@ class _UsersScreenState extends State<UsersScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
                 : _users.isEmpty
                     ? Center(
-                        child: Text("No users found.",
+                        child: Text("No active users found.",
                             style: TextStyle(color: theme.subtleTextColor)))
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            // ---> THE VERTICAL SCROLL FIX <---
                             child: SingleChildScrollView(
                               scrollDirection: Axis.vertical,
                               child: SingleChildScrollView(
@@ -193,7 +199,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                       ),
                                       columnSpacing: 32.0,
                                       horizontalMargin: 24.0,
-                                      dataRowMaxHeight: 70.0, 
+                                      dataRowMaxHeight: 70.0,
                                       columns: const [
                                         DataColumn(label: Expanded(child: Text('User Profile'))),
                                         DataColumn(label: Expanded(child: Text('Email Address'))),
@@ -207,9 +213,9 @@ class _UsersScreenState extends State<UsersScreen> {
                                         String lName = user['lastName'] ?? '';
                                         String uName = user['username'] ?? 'Unknown';
 
-                                        String fullName = (fName.isEmpty && lName.isEmpty) 
-                                          ? uName 
-                                          : '$fName $lName'.trim();
+                                        String fullName = (fName.isEmpty && lName.isEmpty)
+                                            ? uName
+                                            : '$fName $lName'.trim();
 
                                         String initials = _getInitials(fName, lName, uName);
                                         bool isBanned = user['status'] == 'Banned';
@@ -245,73 +251,74 @@ class _UsersScreenState extends State<UsersScreen> {
                                                           fontWeight: FontWeight.w600,
                                                           color: theme.bodyTextColor,
                                                         ),
-                                                    ),
-                                                    Text(
-                                                      '@$uName',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[500],
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          DataCell(Text(
-                                            user['email'] ?? 'No Email',
-                                            style: TextStyle(color: theme.bodyTextColor),
-                                          )),
-                                          DataCell(Text(
-                                            _formatDate(user['createdAt']),
-                                            style: TextStyle(color: theme.subtleTextColor),
-                                          )),
-                                          DataCell(
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: isBanned
-                                                    ? Colors.red.withOpacity(0.15)
-                                                    : Colors.green.withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(20),
+                                                      Text(
+                                                        '@$uName',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.grey[500],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
-                                              child: Text(
-                                                user['status'] ?? 'Active',
-                                                style: TextStyle(
+                                            ),
+                                            DataCell(Text(
+                                              user['email'] ?? 'No Email',
+                                              style: TextStyle(color: theme.bodyTextColor),
+                                            )),
+                                            DataCell(Text(
+                                              _formatDate(user['createdAt']),
+                                              style: TextStyle(color: theme.subtleTextColor),
+                                            )),
+                                            DataCell(
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                decoration: BoxDecoration(
                                                   color: isBanned
-                                                      ? Colors.red.shade400
-                                                      : Colors.green.shade400,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
+                                                      ? Colors.red.withOpacity(0.15)
+                                                      : Colors.green.withOpacity(0.15),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  user['status'] ?? 'Active',
+                                                  style: TextStyle(
+                                                    color: isBanned
+                                                        ? Colors.red.shade400
+                                                        : Colors.green.shade400,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          DataCell(
-                                            Switch(
-                                              value: !isBanned,
-                                              activeColor: Colors.green,
-                                              onChanged: (value) => _toggleUserStatus(user['_id']),
+                                            DataCell(
+                                              Switch(
+                                                value: !isBanned,
+                                                activeColor: Colors.green,
+                                                onChanged: (value) => _toggleUserStatus(user['_id']),
+                                              ),
                                             ),
-                                          ),
-                                          DataCell(
-                                            IconButton(
-                                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                              tooltip: 'Delete User',
-                                              onPressed: () => _deleteUser(user['_id'], uName), 
+                                            // --- NEW: Archive Button UI ---
+                                            DataCell(
+                                              IconButton(
+                                                icon: const Icon(Icons.archive_outlined, color: Colors.orange, size: 22),
+                                                tooltip: 'Archive User',
+                                                onPressed: () => _archiveUser(user['_id'], uName),
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      );
-                                    }).toList(),
+                                          ],
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
           ),
         ),
       ],

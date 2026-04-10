@@ -105,7 +105,7 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _scoreBadge("WPM", session['wpmScore']?.toString() ?? '0', Colors.blue),
+                                _scoreBadge("Pace", session['paceScore']?.toString() ?? '0', Colors.blue),
                                 _scoreBadge("Clarity", session['clarityScore']?.toString() ?? '0', Colors.green),
                                 _scoreBadge("Energy", session['energyScore']?.toString() ?? '0', Colors.orange),
                                 _scoreBadge("Overall", session['overallScore']?.toString() ?? '0', AppTheme.primaryColor),

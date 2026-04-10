@@ -41,19 +41,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _fetchGlobalStats() async {
+Future<void> _fetchGlobalStats() async {
     setState(() => _isLoadingStats = true);
-
     try {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/stats'));
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         setState(() {
           _totalUsers = data['totalUsers'] ?? 0;
           _totalSessions = data['totalSessions'] ?? 0;
-          _avgAppScore = data['avgAppScore'] ?? 0;
+          _avgAppScore = data['avgAppScore'] ?? 0; 
         });
       }
     } catch (e) {
@@ -217,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   color: theme.bodyTextColor,
                                                 ),
                                               )),
-                                              DataCell(Text('${session['wpmScore'] ?? 0}',
+                                              DataCell(Text('${session['paceScore'] ?? 0}', 
                                                   style: TextStyle(color: theme.bodyTextColor))),
                                               DataCell(Text('${session['clarityScore'] ?? 0}', 
                                                   style: TextStyle(color: theme.bodyTextColor))),
