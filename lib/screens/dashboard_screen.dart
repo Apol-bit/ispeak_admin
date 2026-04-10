@@ -44,7 +44,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 Future<void> _fetchGlobalStats() async {
     setState(() => _isLoadingStats = true);
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/stats'));
+      final url = '${ApiConfig.baseUrl}/admin/stats';
+      print('Fetching stats from: $url'); // ← ADD THIS
+      final response = await http.get(Uri.parse(url));
+      
+      print('Response status: ${response.statusCode}'); // ← ADD THIS
+      print('Response body: ${response.body}'); // ← ADD THIS
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -52,9 +58,12 @@ Future<void> _fetchGlobalStats() async {
           _totalSessions = data['totalSessions'] ?? 0;
           _avgAppScore = data['avgAppScore'] ?? 0; 
         });
+      } else {
+        print('Error: Status ${response.statusCode}'); // ← ADD THIS
       }
     } catch (e) {
       debugPrint("Error fetching admin stats: $e");
+      print("Exception: $e"); // ← ADD THIS
     } finally {
       setState(() => _isLoadingStats = false);
     }

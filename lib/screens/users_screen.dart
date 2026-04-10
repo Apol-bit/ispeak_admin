@@ -13,7 +13,11 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   bool _isLoading = false;
-  List<dynamic> _users = [];
+  
+  // --- NEW: Split the lists and add a toggle state ---
+  List<dynamic> _activeUsers = [];
+  List<dynamic> _archivedUsers = [];
+  bool _showingArchived = false; 
 
   @override
   void initState() {
@@ -37,10 +41,11 @@ class _UsersScreenState extends State<UsersScreen> {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/users'));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body); // It's a map now!
+        final data = jsonDecode(response.body);
         setState(() {
-          // Point directly to the activeUsers key
-          _users = data['activeUsers'] ?? []; 
+          // --- NEW: Save both lists into state ---
+          _activeUsers = data['activeUsers'] ?? []; 
+          _archivedUsers = data['archivedUsers'] ?? [];
         });
       }
     } catch (e) {
@@ -50,7 +55,6 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  // --- NEW: Archive Function replaces Delete ---
   Future<void> _archiveUser(String id, String name) async {
     bool confirm = await _showConfirmDialog(
       "Archive $name?",
@@ -61,11 +65,9 @@ class _UsersScreenState extends State<UsersScreen> {
 
     if (confirm) {
       try {
-        // Adjust this endpoint if your backend router path is slightly different!
         final response = await http.put(Uri.parse('${ApiConfig.baseUrl}/users/$id/archive'));
-
         if (response.statusCode == 200) {
-          _fetchUsers(); // Refresh the list so they disappear
+          _fetchUsers(); 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("User safely archived"))
           );
@@ -76,24 +78,37 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
+  // The Unarchive Function
+  Future<void> _unarchiveUser(String id, String name) async {
+    bool confirm = await _showConfirmDialog(
+      "Restore $name?",
+      "This will reactivate their account and allow them to log in again.",
+      "Restore User",
+      Colors.green,
+    );
+
+    if (confirm) {
+      try {
+        final response = await http.put(Uri.parse('${ApiConfig.baseUrl}/users/$id/unarchive'));
+        if (response.statusCode == 200) {
+          _fetchUsers(); 
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User successfully restored!"))
+          );
+        }
+      } catch (e) {
+        debugPrint("Error restoring user: $e");
+      }
+    }
+  }
+
   Future<void> _toggleUserStatus(String userId) async {
     try {
-      final response = await http.patch(
-        Uri.parse('${ApiConfig.baseUrl}/users/$userId/status'),
-      );
-
+      final response = await http.patch(Uri.parse('${ApiConfig.baseUrl}/users/$userId/status'));
       if (response.statusCode == 200) {
-        setState(() {
-          final index = _users.indexWhere((u) => u['_id'] == userId);
-          if (index != -1) {
-            _users[index]['status'] =
-                _users[index]['status'] == 'Banned' ? 'Active' : 'Banned';
-          }
-        });
+        _fetchUsers(); // Refresh to ensure sync
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Account status updated successfully"),
-              duration: Duration(seconds: 1)),
+          const SnackBar(content: Text("Account status updated"), duration: Duration(seconds: 1)),
         );
       }
     } catch (e) {
@@ -101,7 +116,6 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  // --- UPDATED: Dynamic Confirm Dialog ---
   Future<bool> _showConfirmDialog(String title, String content, String confirmText, Color confirmColor) async {
     return await showDialog(
           context: context,
@@ -109,22 +123,18 @@ class _UsersScreenState extends State<UsersScreen> {
             title: Text(title),
             content: Text(content),
             actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text("Cancel")),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text(confirmText, style: TextStyle(color: confirmColor, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-        ) ??
-        false;
+        ) ?? false;
   }
 
   String _formatDate(String? isoDate) {
     if (isoDate == null) return "Unknown";
-
     try {
       final date = DateTime.parse(isoDate).toLocal();
       return '${date.month}/${date.day}/${date.year}';
@@ -138,6 +148,9 @@ class _UsersScreenState extends State<UsersScreen> {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
+    // Decide which list to show based on the toggle
+    final displayList = _showingArchived ? _archivedUsers : _activeUsers;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,22 +158,46 @@ class _UsersScreenState extends State<UsersScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Manage Users",
+              _showingArchived ? "Archived Users" : "Manage Users",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: theme.headingColor,
               ),
             ),
-            ElevatedButton.icon(
-              onPressed: _fetchUsers,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text("Refresh List"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showingArchived = !_showingArchived;
+                    });
+                  },
+                  icon: Icon(
+                    _showingArchived ? Icons.people : Icons.archive, 
+                    color: _showingArchived ? AppTheme.primaryColor : Colors.orange,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _showingArchived ? "View Active Users" : "View Archive",
+                    style: TextStyle(
+                      color: _showingArchived ? AppTheme.primaryColor : Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _fetchUsers,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text("Refresh"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -175,10 +212,13 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
-                : _users.isEmpty
+                : displayList.isEmpty
                     ? Center(
-                        child: Text("No active users found.",
-                            style: TextStyle(color: theme.subtleTextColor)))
+                        child: Text(
+                          _showingArchived ? "No archived users found." : "No active users found.",
+                          style: TextStyle(color: theme.subtleTextColor),
+                        ),
+                      )
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           return ClipRRect(
@@ -208,7 +248,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                         DataColumn(label: Text('Access')),
                                         DataColumn(label: Text('Actions')),
                                       ],
-                                      rows: _users.map((user) {
+                                      rows: displayList.map((user) {
                                         String fName = user['firstName'] ?? '';
                                         String lName = user['lastName'] ?? '';
                                         String uName = user['username'] ?? 'Unknown';
@@ -230,11 +270,11 @@ class _UsersScreenState extends State<UsersScreen> {
                                                 children: [
                                                   CircleAvatar(
                                                     radius: 18,
-                                                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                                    backgroundColor: _showingArchived ? Colors.grey.withOpacity(0.2) : AppTheme.primaryColor.withOpacity(0.1),
                                                     child: Text(
                                                       initials,
-                                                      style: const TextStyle(
-                                                        color: AppTheme.primaryColor,
+                                                      style: TextStyle(
+                                                        color: _showingArchived ? Colors.grey : AppTheme.primaryColor,
                                                         fontWeight: FontWeight.bold,
                                                         fontSize: 12,
                                                       ),
@@ -276,17 +316,21 @@ class _UsersScreenState extends State<UsersScreen> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                                 decoration: BoxDecoration(
-                                                  color: isBanned
-                                                      ? Colors.red.withOpacity(0.15)
-                                                      : Colors.green.withOpacity(0.15),
+                                                  color: _showingArchived 
+                                                      ? Colors.orange.withOpacity(0.15)
+                                                      : isBanned
+                                                          ? Colors.red.withOpacity(0.15)
+                                                          : Colors.green.withOpacity(0.15),
                                                   borderRadius: BorderRadius.circular(20),
                                                 ),
                                                 child: Text(
-                                                  user['status'] ?? 'Active',
+                                                  _showingArchived ? 'Archived' : (user['status'] ?? 'Active'),
                                                   style: TextStyle(
-                                                    color: isBanned
-                                                        ? Colors.red.shade400
-                                                        : Colors.green.shade400,
+                                                    color: _showingArchived
+                                                        ? Colors.orange.shade400
+                                                        : isBanned
+                                                            ? Colors.red.shade400
+                                                            : Colors.green.shade400,
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 12,
                                                   ),
@@ -297,16 +341,21 @@ class _UsersScreenState extends State<UsersScreen> {
                                               Switch(
                                                 value: !isBanned,
                                                 activeColor: Colors.green,
-                                                onChanged: (value) => _toggleUserStatus(user['_id']),
+                                                onChanged: _showingArchived ? null : (value) => _toggleUserStatus(user['_id']),
                                               ),
                                             ),
-                                            // --- NEW: Archive Button UI ---
                                             DataCell(
-                                              IconButton(
-                                                icon: const Icon(Icons.archive_outlined, color: Colors.orange, size: 22),
-                                                tooltip: 'Archive User',
-                                                onPressed: () => _archiveUser(user['_id'], uName),
-                                              ),
+                                              _showingArchived
+                                                  ? IconButton(
+                                                      icon: const Icon(Icons.unarchive, color: Colors.green, size: 22),
+                                                      tooltip: 'Restore User',
+                                                      onPressed: () => _unarchiveUser(user['_id'], uName),
+                                                    )
+                                                  : IconButton(
+                                                      icon: const Icon(Icons.archive_outlined, color: Colors.orange, size: 22),
+                                                      tooltip: 'Archive User',
+                                                      onPressed: () => _archiveUser(user['_id'], uName),
+                                                    ),
                                             ),
                                           ],
                                         );
