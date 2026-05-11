@@ -213,6 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
                                 hintText: 'Enter email',
                                 hintStyle: TextStyle(color: Colors.grey[400]),
@@ -251,6 +252,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _passwordController,
                               obscureText: !_isPasswordVisible,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _isLoading ? null : _handleLogin(),
                               decoration: InputDecoration(
                                 hintText: 'Enter your password',
                                 hintStyle: TextStyle(color: Colors.grey[400]),
@@ -334,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'Secure Log In',
+                                        'Log In',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
