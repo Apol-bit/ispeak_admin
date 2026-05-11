@@ -349,11 +349,17 @@ class _UsersScreenState extends State<UsersScreen> {
                                                   ? IconButton(
                                                       icon: const Icon(Icons.unarchive, color: Colors.green, size: 22),
                                                       tooltip: 'Restore User',
+                                                      hoverColor: Colors.green.withOpacity(0.08),
+                                                      highlightColor: Colors.green.withOpacity(0.15),
+                                                      splashColor: Colors.green.withOpacity(0.12),
                                                       onPressed: () => _unarchiveUser(user['_id'], uName),
                                                     )
                                                   : IconButton(
                                                       icon: const Icon(Icons.archive_outlined, color: Colors.orange, size: 22),
                                                       tooltip: 'Archive User',
+                                                      hoverColor: Colors.orange.withOpacity(0.08),
+                                                      highlightColor: Colors.orange.withOpacity(0.15),
+                                                      splashColor: Colors.orange.withOpacity(0.12),
                                                       onPressed: () => _archiveUser(user['_id'], uName),
                                                     ),
                                             ),

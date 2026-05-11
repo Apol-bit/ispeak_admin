@@ -214,6 +214,9 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                        hoverColor: Colors.blue.withOpacity(0.08),
+                                        highlightColor: Colors.blue.withOpacity(0.15),
+                                        splashColor: Colors.blue.withOpacity(0.12),
                                         onPressed: () {
                                           // UPDATE MODE LOGIC: Opens modal with existing data!
                                           final isDark = ThemeProvider.of(context)!.isDarkMode;
@@ -238,6 +241,9 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                                         children: [
                                                           IconButton(
                                                             icon: Icon(Icons.close, color: theme.headingColor),
+                                                            hoverColor: theme.headingColor.withOpacity(0.08),
+                                                            highlightColor: theme.headingColor.withOpacity(0.15),
+                                                            splashColor: theme.headingColor.withOpacity(0.12),
                                                             onPressed: () => Navigator.pop(themeContext),
                                                           ),
                                                           Expanded(
@@ -258,6 +264,9 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                        hoverColor: Colors.red.withOpacity(0.08),
+                                        highlightColor: Colors.red.withOpacity(0.15),
+                                        splashColor: Colors.red.withOpacity(0.12),
                                         onPressed: () => _deleteResource(item['_id']),
                                       ),
                                     ],

@@ -26,7 +26,6 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Keeping the endpoint the same so the backend doesn't break
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/ai-logs'));
 
       if (response.statusCode == 200) {
@@ -58,6 +57,26 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
+    String formatUserId(dynamic userIdData) {
+      if (userIdData == null) return "Unknown";
+      if (userIdData is Map) {
+        final firstName = userIdData['firstName'] ?? '';
+        final lastName = userIdData['lastName'] ?? '';
+        final email = userIdData['email'] ?? '';
+        final id = userIdData['_id'] ?? '';
+        
+        final namePart = '$firstName $lastName'.trim();
+        if (namePart.isNotEmpty) {
+          return '$namePart ($email)\nID: $id';
+        } else if (email.isNotEmpty) {
+          return '$email\nID: $id';
+        } else {
+          return id.toString();
+        }
+      }
+      return userIdData.toString();
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) => ThemeProvider(
@@ -84,6 +103,9 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                         ),
                         IconButton(
                           icon: Icon(Icons.close, color: modalTheme.headingColor),
+                          hoverColor: modalTheme.headingColor.withOpacity(0.08),
+                          highlightColor: modalTheme.headingColor.withOpacity(0.15),
+                          splashColor: modalTheme.headingColor.withOpacity(0.12),
                           onPressed: () => Navigator.pop(themeContext),
                         ),
                       ],
@@ -95,12 +117,34 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildDetailSection("Session ID", session['_id'] ?? 'Unknown', modalTheme),
-                            _buildDetailSection("User ID", session['userId'] ?? 'Unknown', modalTheme),
+                            _buildDetailSection("Session ID", session['_id']?.toString() ?? 'Unknown', modalTheme),
+                            _buildDetailSection("User ID", formatUserId(session['userId']), modalTheme),
                             const SizedBox(height: 16),
-                            _buildDetailSection("Raw Transcription", session['transcription'] ?? 'No transcription available.', modalTheme, isCode: true),
+                            _buildDetailSection("Raw Transcription", session['transcription']?.toString() ?? 'No transcription available.', modalTheme, isCode: true),
                             const SizedBox(height: 16),
-                            _buildDetailSection("AI Feedback Summary", session['aiFeedback'] ?? 'AI is still processing or failed to generate feedback.', modalTheme),
+                            _buildDetailSection("AI Feedback Summary", session['aiFeedback']?.toString() ?? 'AI is still processing or failed to generate feedback.', modalTheme),
+                            
+                            // ---> THE CRASH FIX: Format the JSON beautifully <---
+                            Builder(
+                              builder: (context) {
+                                String feedbackDisplay;
+                                if (session['aiFeedback'] is Map) {
+                                  // If it's a JSON Object, format it with nice indents!
+                                  feedbackDisplay = const JsonEncoder.withIndent('  ').convert(session['aiFeedback']);
+                                } else {
+                                  // Fallback for older string-based records
+                                  feedbackDisplay = session['aiFeedback']?.toString() ?? 'AI is still processing...';
+                                }
+
+                                return _buildDetailSection(
+                                  "AI Feedback Details", 
+                                  feedbackDisplay, 
+                                  modalTheme, 
+                                  isCode: true
+                                );
+                              }
+                            ),
+                            
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -209,7 +253,6 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                         builder: (context, constraints) {
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            // ---> THE VERTICAL SCROLL FIX <---
                             child: SingleChildScrollView(
                               scrollDirection: Axis.vertical,
                               child: SingleChildScrollView(
@@ -265,6 +308,9 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
                                               IconButton(
                                                 icon: const Icon(Icons.troubleshoot, color: Colors.blue, size: 20),
                                                 tooltip: 'Inspect Session',
+                                                hoverColor: Colors.blue.withOpacity(0.08),
+                                                highlightColor: Colors.blue.withOpacity(0.15),
+                                                splashColor: Colors.blue.withOpacity(0.12),
                                                 onPressed: () => _inspectSession(session),
                                               ),
                                             ),
