@@ -8,7 +8,7 @@ import 'login_screen.dart';
 import 'profile_dialog.dart';
 
 class MainLayout extends StatefulWidget {
-  // ---> NEW: Added variables to receive the real admin data <---
+  // Added variables to receive the real admin data
   final String adminName;
   final String adminEmail;
 
