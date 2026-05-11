@@ -5,6 +5,7 @@ import 'users_screen.dart';
 import 'resources_screen.dart';
 import 'session_reviews_screen.dart'; 
 import 'login_screen.dart'; 
+import 'profile_dialog.dart';
 
 class MainLayout extends StatefulWidget {
   // ---> NEW: Added variables to receive the real admin data <---
@@ -34,270 +35,24 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _showProfileDialog() {
-    final theme = ThemeProvider.of(context)!;
-    final isDark = theme.isDarkMode;
-
-    final nameController = TextEditingController(text: _adminName);
-    final emailController = TextEditingController(text: _adminEmail);
-    final formKey = GlobalKey<FormState>();
+    final isDark = _isDarkMode;
 
     showDialog(
       context: context,
       builder: (dialogContext) => ThemeProvider(
         isDarkMode: isDark,
-        child: Builder(
-          builder: (themeContext) {
-            final modalTheme = ThemeProvider.of(themeContext)!;
-            return Dialog(
-              backgroundColor: modalTheme.scaffoldColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              child: Container(
-                width: 500,
-                padding: const EdgeInsets.all(28),
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [AppTheme.primaryColor, Colors.blueAccent],
-                                ),
-                              ),
-                              child: CircleAvatar(
-                                radius: 36,
-                                backgroundColor: modalTheme.scaffoldColor,
-                                child: const Icon(
-                                  Icons.admin_panel_settings,
-                                  size: 40,
-                                  color: AppTheme.primaryColor,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Admin Profile",
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: modalTheme.headingColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      "ROLE: SUPER ADMIN",
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.close, color: modalTheme.headingColor),
-                              onPressed: () => Navigator.pop(themeContext),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Divider(color: modalTheme.borderColor),
-                        const SizedBox(height: 20),
-
-                        Text(
-                          "Display Name",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: modalTheme.headingColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: nameController,
-                          style: TextStyle(color: modalTheme.headingColor),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: isDark ? AppTheme.darkSurface : Colors.grey[50],
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: modalTheme.borderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: modalTheme.borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                            ),
-                          ),
-                          validator: (value) => value == null || value.isEmpty ? 'Name cannot be empty' : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        Text(
-                          "Email Address",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: modalTheme.headingColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: emailController,
-                          style: TextStyle(color: modalTheme.headingColor),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: isDark ? AppTheme.darkSurface : Colors.grey[50],
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: modalTheme.borderColor),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: modalTheme.borderColor),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                            ),
-                          ),
-                          validator: (value) => value == null || value.isEmpty ? 'Email cannot be empty' : null,
-                        ),
-                        const SizedBox(height: 24),
-
-                        Text(
-                          "System Permissions & Security",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: modalTheme.headingColor,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppTheme.darkSurface : Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: modalTheme.borderColor),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.shield, color: AppTheme.primaryColor, size: 24),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "Security Tier",
-                                      style: TextStyle(fontSize: 11, color: modalTheme.subtleTextColor),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Level 1",
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTheme.headingColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppTheme.darkSurface : Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: modalTheme.borderColor),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.verified_user, color: Colors.blue, size: 24),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "Access Level",
-                                      style: TextStyle(fontSize: 11, color: modalTheme.subtleTextColor),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Unlimited",
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTheme.headingColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 28),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(themeContext),
-                              child: Text(
-                                "Cancel",
-                                style: TextStyle(color: modalTheme.subtleTextColor),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (formKey.currentState!.validate()) {
-                                  setState(() {
-                                    _adminName = nameController.text.trim();
-                                    _adminEmail = emailController.text.trim();
-                                  });
-                                  Navigator.pop(themeContext);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Profile updated successfully!'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              ),
-                              child: const Text("Save Changes"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        child: ProfileDialog(
+          adminName: _adminName,
+          adminEmail: _adminEmail,
+          onSave: (newName, newEmail) {
+            setState(() {
+              _adminName = newName;
+              _adminEmail = newEmail;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile updated successfully!'),
+                backgroundColor: Colors.green,
               ),
             );
           },
