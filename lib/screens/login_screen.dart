@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../config/api_config.dart';
 import '../theme/app_theme.dart';
 import 'main_layout.dart';
+import 'validator_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-  // SECURE Admin Authentication Logic connecting to Node.js Backend
+  // SECURE Admin/Validator Authentication Logic connecting to Node.js Backend
   Future<void> _handleLogin() async {
     final isValid = _formKey.currentState!.validate();
 
@@ -49,31 +50,51 @@ class _LoginScreenState extends State<LoginScreen> {
           
           // Extract role safely, default to 'user' if missing
           final String userRole = data['user']?['role'] ?? 'user';
+          final String userName = '${data['user']?['firstName'] ?? 'User'} ${data['user']?['lastName'] ?? ''}'.trim();
+          final String userEmail = data['user']?['email'] ?? 'user@ispeak.com';
 
           if (userRole == 'admin') {
-            // VALID ADMIN
+            // VALID ADMIN → Route to Admin Control Center (Dashboard/Logs)
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Secure Login successful!'),
+                content: Text('Admin Login successful!'),
                 backgroundColor: Colors.green,
               ),
             );
             
             Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MainLayout(
-              // Safely grab the first name and last name, fallback to "Super Admin" if missing
-              adminName: '${data['user']?['firstName'] ?? 'Super'} ${data['user']?['lastName'] ?? 'Admin'}'.trim(),
-              adminEmail: data['user']?['email'] ?? 'admin@ispeak.com',
-            )),
-          );
+              context,
+              MaterialPageRoute(builder: (context) => MainLayout(
+                adminName: userName,
+                adminEmail: userEmail,
+              )),
+            );
+
+          } else if (userRole == 'validator') {
+            // VALID VALIDATOR → Route to Validator Dashboard (Resources only)
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Validator Login successful!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => ValidatorLayout(
+                validatorName: userName,
+                validatorEmail: userEmail,
+              )),
+            );
+
           } else {
             // BLOCK REGULAR USERS
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Access Denied: You do not have admin privileges.'),
+                content: Text('Access Denied: You do not have admin or validator privileges.'),
                 backgroundColor: Colors.redAccent,
                 behavior: SnackBarBehavior.floating,
               ),

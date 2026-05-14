@@ -1,36 +1,32 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'dashboard_screen.dart';
-import 'users_screen.dart';
-import 'session_reviews_screen.dart'; 
+import 'resources_screen.dart';
 import 'login_screen.dart'; 
 import 'profile_dialog.dart';
 
-class MainLayout extends StatefulWidget {
-  // Added variables to receive the real admin data
-  final String adminName;
-  final String adminEmail;
+class ValidatorLayout extends StatefulWidget {
+  final String validatorName;
+  final String validatorEmail;
 
-  // Added required parameters to the constructor
-  const MainLayout({
+  const ValidatorLayout({
     super.key, 
-    required this.adminName, 
-    required this.adminEmail
+    required this.validatorName, 
+    required this.validatorEmail
   });
 
   @override
-  State<MainLayout> createState() => _MainLayoutState();
+  State<ValidatorLayout> createState() => _ValidatorLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
-  late String _adminName;
-  late String _adminEmail;
+class _ValidatorLayoutState extends State<ValidatorLayout> {
+  late String _validatorName;
+  late String _validatorEmail;
 
   @override
   void initState() {
     super.initState();
-    _adminName = widget.adminName;
-    _adminEmail = widget.adminEmail;
+    _validatorName = widget.validatorName;
+    _validatorEmail = widget.validatorEmail;
   }
 
   void _showProfileDialog() {
@@ -41,12 +37,13 @@ class _MainLayoutState extends State<MainLayout> {
       builder: (dialogContext) => ThemeProvider(
         isDarkMode: isDark,
         child: ProfileDialog(
-          adminName: _adminName,
-          adminEmail: _adminEmail,
+          adminName: _validatorName,
+          adminEmail: _validatorEmail,
+          role: 'validator',
           onSave: (newName, newEmail) {
             setState(() {
-              _adminName = newName;
-              _adminEmail = newEmail;
+              _validatorName = newName;
+              _validatorEmail = newEmail;
             });
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -68,19 +65,18 @@ class _MainLayoutState extends State<MainLayout> {
   static const double _collapsedWidth = 72;
   static const Duration _animDuration = Duration(milliseconds: 200);
 
+  // Validator only sees the Resources screen
   final List<Widget> _screens = [
-    const DashboardScreen(),
-    const UsersScreen(),
-    const SessionReviewsScreen(), 
+    const ResourcesScreen(),
   ];
 
-  Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
+  Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : const Color(0xFF0E7C61);
   Color get _bodyColor =>
       _isDarkMode ? AppTheme.darkBackground : AppTheme.backgroundColor;
   Color get _topBarColor =>
       _isDarkMode ? AppTheme.darkSurface : Colors.white;
   Color get _topBarText =>
-      _isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+      _isDarkMode ? AppTheme.darkTextPrimary : const Color(0xFF0E7C61);
   Color get _topBarBorder =>
       _isDarkMode ? AppTheme.darkBorder : Colors.grey.shade200;
 
@@ -100,7 +96,7 @@ class _MainLayoutState extends State<MainLayout> {
                     Image.asset('assets/images/whitelogo.png',
                         height: 36, width: 36, fit: BoxFit.contain),
                     const SizedBox(width: 8),
-                    const Text("iSpeak Admin",
+                    const Text("iSpeak Validator",
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),
                   ],
@@ -194,7 +190,7 @@ class _MainLayoutState extends State<MainLayout> {
                               const SizedBox(width: 10),
                               const Expanded(
                                 child: Text(
-                                  "iSpeak Admin",
+                                  "iSpeak Validator",
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: Colors.white,
@@ -217,9 +213,7 @@ class _MainLayoutState extends State<MainLayout> {
 
           const SizedBox(height: 12),
 
-          _navItem(Icons.dashboard, "Dashboard", 0),
-          _navItem(Icons.people, "Users", 1),
-          _navItem(Icons.analytics, "Session Reviews", 2),
+          _navItem(Icons.library_books, "Resources", 0),
 
           const Spacer(),
 
@@ -394,7 +388,7 @@ class _MainLayoutState extends State<MainLayout> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "Admin Control Center",
+            "Validator Dashboard",
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -415,7 +409,7 @@ class _MainLayoutState extends State<MainLayout> {
             ),
             child: PopupMenuButton<String>(
               offset: const Offset(0, 50),
-              tooltip: 'Admin Account',
+              tooltip: 'Validator Account',
               onSelected: (value) async {
                 if (value == 'logout') {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -441,16 +435,15 @@ class _MainLayoutState extends State<MainLayout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ---> NEW: Using the dynamic state variables here! <---
                       Text(
-                        _adminName, 
+                        _validatorName, 
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: _isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                       Text(
-                        _adminEmail, 
+                        _validatorEmail, 
                         style: TextStyle(
                           fontSize: 12,
                           color: _isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -475,11 +468,11 @@ class _MainLayoutState extends State<MainLayout> {
                 
                 PopupMenuItem<String>(
                   value: 'logout',
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.logout, size: 20, color: Colors.redAccent),
-                      const SizedBox(width: 12),
-                      const Text('Log Out', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                      SizedBox(width: 12),
+                      Text('Log Out', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -487,13 +480,13 @@ class _MainLayoutState extends State<MainLayout> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: const Color(0xFF0E7C61).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const CircleAvatar(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: Color(0xFF0E7C61),
                   radius: 18,
-                  child: Icon(Icons.admin_panel_settings, color: Colors.white),
+                  child: Icon(Icons.verified_user, color: Colors.white),
                 ),
               ),
             ),
@@ -527,7 +520,7 @@ class _MainLayoutState extends State<MainLayout> {
                         height: 36, width: 36, fit: BoxFit.contain),
                     const SizedBox(width: 10),
                     const Text(
-                      "iSpeak Admin",
+                      "iSpeak Validator",
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -537,9 +530,7 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
               ),
             ),
-            _drawerItem(Icons.dashboard, "Dashboard", 0),
-            _drawerItem(Icons.people, "Users", 1),
-            _drawerItem(Icons.analytics, "Session Reviews", 2),
+            _drawerItem(Icons.library_books, "Resources", 0),
             const Spacer(),
             ListTile(
               leading: Icon(

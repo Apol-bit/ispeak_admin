@@ -4,12 +4,14 @@ import '../theme/app_theme.dart';
 class ProfileDialog extends StatefulWidget {
   final String adminName;
   final String adminEmail;
+  final String role; // 'admin' or 'validator'
   final Function(String newName, String newEmail) onSave;
 
   const ProfileDialog({
     super.key,
     required this.adminName,
     required this.adminEmail,
+    this.role = 'admin',
     required this.onSave,
   });
 
@@ -81,7 +83,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Admin Profile",
+                            widget.role == 'validator' ? "Validator Profile" : "Admin Profile",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -92,15 +94,15 @@ class _ProfileDialogState extends State<ProfileDialog> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.12),
+                              color: (widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.green).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              "ROLE: SUPER ADMIN",
+                            child: Text(
+                              widget.role == 'validator' ? "ROLE: VALIDATOR" : "ROLE: SUPER ADMIN",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.green,
                               ),
                             ),
                           ),
@@ -206,7 +208,9 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.shield, color: AppTheme.primaryColor, size: 24),
+                            Icon(Icons.shield, 
+                              color: widget.role == 'validator' ? const Color(0xFF0E7C61) : AppTheme.primaryColor, 
+                              size: 24),
                             const SizedBox(height: 8),
                             Text(
                               "Security Tier",
@@ -214,7 +218,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Level 1",
+                              widget.role == 'validator' ? "Level 2" : "Level 1",
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.headingColor),
                             ),
                           ],
@@ -232,7 +236,9 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.verified_user, color: Colors.blue, size: 24),
+                            Icon(Icons.verified_user, 
+                              color: widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.blue, 
+                              size: 24),
                             const SizedBox(height: 8),
                             Text(
                               "Access Level",
@@ -240,7 +246,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Unlimited",
+                              widget.role == 'validator' ? "Resource Management" : "Full System Access",
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.headingColor),
                             ),
                           ],
@@ -248,6 +254,41 @@ class _ProfileDialogState extends State<ProfileDialog> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                
+                // --- PERMISSIONS BREAKDOWN (for thesis documentation) ---
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.darkSurface : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Permissions",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.headingColor),
+                      ),
+                      const SizedBox(height: 10),
+                      if (widget.role == 'admin') ...[
+                        _permissionRow("Dashboard & Analytics", true, theme),
+                        _permissionRow("User Management", true, theme),
+                        _permissionRow("Session Reviews & AI Logs", true, theme),
+                        _permissionRow("Resource Management", false, theme),
+                      ] else ...[
+                        _permissionRow("Resource Management", true, theme),
+                        _permissionRow("Upload Reference Audio", true, theme),
+                        _permissionRow("Manage Transcripts", true, theme),
+                        _permissionRow("Dashboard & Analytics", false, theme),
+                        _permissionRow("User Management", false, theme),
+                        _permissionRow("Session Reviews & AI Logs", false, theme),
+                      ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 28),
 
@@ -289,6 +330,33 @@ class _ProfileDialogState extends State<ProfileDialog> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _permissionRow(String label, bool granted, dynamic theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            granted ? Icons.check_circle : Icons.cancel,
+            color: granted ? Colors.green : Colors.red.withOpacity(0.5),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: granted ? theme.bodyTextColor : theme.subtleTextColor,
+                fontWeight: granted ? FontWeight.w500 : FontWeight.normal,
+                decoration: granted ? null : TextDecoration.lineThrough,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

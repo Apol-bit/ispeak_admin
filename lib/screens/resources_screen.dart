@@ -121,7 +121,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                 const Expanded(
                                   child: Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    child: CreateResourceScreen(), // Create Mode
+                                    child: CreateResourceScreen(),
                                   ),
                                 ),
                               ],
@@ -168,118 +168,120 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
                 final resources = snapshot.data!;
 
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  // ---> THE VERTICAL SCROLL FIX <---
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: MediaQuery.of(context).size.width - 250, 
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            dividerColor: Colors.transparent, 
-                          ),
-                          child: DataTable(
-                            headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                            columnSpacing: 40,
-                            horizontalMargin: 24,
-                            headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.headingColor),
-                            dataTextStyle: TextStyle(color: theme.bodyTextColor),
-                            columns: const [
-                              DataColumn(label: Expanded(child: Text('Type'))),
-                              DataColumn(label: Expanded(child: Text('Title'))),
-                              DataColumn(label: Expanded(child: Text('Difficulty'))),
-                              DataColumn(label: Expanded(child: Text('Language'))),
-                              DataColumn(label: Text('Actions')),
-                            ],
-                            rows: resources.map((item) {
-                              return DataRow(
-                                color: WidgetStateProperty.resolveWith<Color?>((states) => theme.cardColor),
-                                cells: [
-                                  DataCell(Chip(
-                                    label: Text(item['type'] ?? 'N/A', style: const TextStyle(fontSize: 12)), 
-                                    visualDensity: VisualDensity.compact,
-                                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                                    side: BorderSide.none,
-                                  )),
-                                  DataCell(Text(item['title'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.w500))),
-                                  DataCell(Text(item['difficulty'] ?? 'N/A')),
-                                  DataCell(Text(item['language'] ?? 'N/A')),
-                                  DataCell(Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
-                                        hoverColor: Colors.blue.withOpacity(0.08),
-                                        highlightColor: Colors.blue.withOpacity(0.15),
-                                        splashColor: Colors.blue.withOpacity(0.12),
-                                        onPressed: () {
-                                          // UPDATE MODE LOGIC: Opens modal with existing data!
-                                          final isDark = ThemeProvider.of(context)!.isDarkMode;
-                                          showDialog(
-                                            context: context,
-                                            builder: (dialogContext) => ThemeProvider(
-                                              isDarkMode: isDark,
-                                              child: Builder(
-                                                builder: (themeContext) {
-                                                  final theme = ThemeProvider.of(themeContext)!;
-                                                  return Dialog(
-                                                    backgroundColor: theme.scaffoldColor,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(16),
-                                                    ),
-                                                    child: Container(
-                                                      width: 700,
-                                                      height: MediaQuery.of(context).size.height * 0.85,
-                                                      padding: const EdgeInsets.all(16),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                                        children: [
-                                                          IconButton(
-                                                            icon: Icon(Icons.close, color: theme.headingColor),
-                                                            hoverColor: theme.headingColor.withOpacity(0.08),
-                                                            highlightColor: theme.headingColor.withOpacity(0.15),
-                                                            splashColor: theme.headingColor.withOpacity(0.12),
-                                                            onPressed: () => Navigator.pop(themeContext),
-                                                          ),
-                                                          Expanded(
-                                                            child: Padding(
-                                                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                                              child: CreateResourceScreen(resource: item), // Pass data here!
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ).then((_) => _fetchResources());
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                        hoverColor: Colors.red.withOpacity(0.08),
-                                        highlightColor: Colors.red.withOpacity(0.15),
-                                        splashColor: Colors.red.withOpacity(0.12),
-                                        onPressed: () => _deleteResource(item['_id']),
-                                      ),
-                                    ],
-                                  )),
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                dividerColor: Colors.transparent,
+                              ),
+                              child: DataTable(
+                                headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                columnSpacing: 40,
+                                horizontalMargin: 24,
+                                headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.headingColor),
+                                dataTextStyle: TextStyle(color: theme.bodyTextColor),
+                                columns: const [
+                                  DataColumn(label: Expanded(child: Text('Type'))),
+                                  DataColumn(label: Expanded(child: Text('Title'))),
+                                  DataColumn(label: Expanded(child: Text('Difficulty'))),
+                                  DataColumn(label: Expanded(child: Text('Language'))),
+                                  DataColumn(label: Text('Actions')),
                                 ],
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
+                                rows: resources.map((item) {
+                                  return DataRow(
+                                    color: WidgetStateProperty.resolveWith<Color?>((states) => theme.cardColor),
+                                    cells: [
+                                      DataCell(Chip(
+                                        label: Text(item['type'] ?? 'N/A', style: const TextStyle(fontSize: 12)),
+                                        visualDensity: VisualDensity.compact,
+                                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                        side: BorderSide.none,
+                                      )),
+                                      DataCell(Text(item['title'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                      DataCell(Text(item['difficulty'] ?? 'N/A')),
+                                      DataCell(Text(item['language'] ?? 'N/A')),
+                                      DataCell(Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                            hoverColor: Colors.blue.withOpacity(0.08),
+                                            highlightColor: Colors.blue.withOpacity(0.15),
+                                            splashColor: Colors.blue.withOpacity(0.12),
+                                            onPressed: () {
+                                              final isDark = ThemeProvider.of(context)!.isDarkMode;
+                                              showDialog(
+                                                context: context,
+                                                builder: (dialogContext) => ThemeProvider(
+                                                  isDarkMode: isDark,
+                                                  child: Builder(
+                                                    builder: (themeContext) {
+                                                      final theme = ThemeProvider.of(themeContext)!;
+                                                      return Dialog(
+                                                        backgroundColor: theme.scaffoldColor,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(16),
+                                                        ),
+                                                        child: Container(
+                                                          width: 700,
+                                                          height: MediaQuery.of(context).size.height * 0.85,
+                                                          padding: const EdgeInsets.all(16),
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                                            children: [
+                                                              IconButton(
+                                                                icon: Icon(Icons.close, color: theme.headingColor),
+                                                                hoverColor: theme.headingColor.withOpacity(0.08),
+                                                                highlightColor: theme.headingColor.withOpacity(0.15),
+                                                                splashColor: theme.headingColor.withOpacity(0.12),
+                                                                onPressed: () => Navigator.pop(themeContext),
+                                                              ),
+                                                              Expanded(
+                                                                child: Padding(
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                                                  child: CreateResourceScreen(resource: item),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ).then((_) => _fetchResources());
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                            hoverColor: Colors.red.withOpacity(0.08),
+                                            highlightColor: Colors.red.withOpacity(0.15),
+                                            splashColor: Colors.red.withOpacity(0.12),
+                                            onPressed: () => _deleteResource(item['_id']),
+                                          ),
+                                        ],
+                                      )),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),      // closes DataTable
+                            ),        // closes Theme
+                          ),          // closes ConstrainedBox
+                        ),            // closes horizontal SingleChildScrollView
+                      ),              // closes vertical SingleChildScrollView
+                    );                // closes ClipRRect
+                  },                  // closes LayoutBuilder builder
+                );                    // closes LayoutBuilder
               },
             ),
           ),
