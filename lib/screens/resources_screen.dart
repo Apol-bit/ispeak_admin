@@ -274,14 +274,14 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                     ],
                                   );
                                 }).toList(),
-                              ),      // closes DataTable
-                            ),        // closes Theme
-                          ),          // closes ConstrainedBox
-                        ),            // closes horizontal SingleChildScrollView
-                      ),              // closes vertical SingleChildScrollView
-                    );                // closes ClipRRect
-                  },                  // closes LayoutBuilder builder
-                );                    // closes LayoutBuilder
+                              ),      
+                            ),        
+                          ),          
+                        ),            
+                      ),              
+                    );                
+                  },                  
+                );                    
               },
             ),
           ),
