@@ -83,7 +83,9 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.role == 'validator' ? "Validator Profile" : "Admin Profile",
+                            widget.role == 'validator'
+                                ? "Validator Profile"
+                                : "Admin Profile",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -92,17 +94,28 @@ class _ProfileDialogState extends State<ProfileDialog> {
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: (widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.green).withOpacity(0.12),
+                              color:
+                                  (widget.role == 'validator'
+                                          ? const Color(0xFF0E7C61)
+                                          : Colors.green)
+                                      .withOpacity(0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              widget.role == 'validator' ? "ROLE: VALIDATOR" : "ROLE: SUPER ADMIN",
+                              widget.role == 'validator'
+                                  ? "ROLE: VALIDATOR"
+                                  : "ROLE: SUPER ADMIN",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.green,
+                                color: widget.role == 'validator'
+                                    ? const Color(0xFF0E7C61)
+                                    : Colors.green,
                               ),
                             ),
                           ),
@@ -135,7 +148,10 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: isDark ? AppTheme.darkSurface : Colors.grey[50],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: theme.borderColor),
@@ -146,10 +162,15 @@ class _ProfileDialogState extends State<ProfileDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primaryColor,
+                        width: 1.5,
+                      ),
                     ),
                   ),
-                  validator: (value) => value == null || value.isEmpty ? 'Name cannot be empty' : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Name cannot be empty'
+                      : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -168,7 +189,10 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: isDark ? AppTheme.darkSurface : Colors.grey[50],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: theme.borderColor),
@@ -179,10 +203,15 @@ class _ProfileDialogState extends State<ProfileDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primaryColor,
+                        width: 1.5,
+                      ),
                     ),
                   ),
-                  validator: (value) => value == null || value.isEmpty ? 'Email cannot be empty' : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Email cannot be empty'
+                      : null,
                 ),
                 const SizedBox(height: 24),
 
@@ -202,24 +231,39 @@ class _ProfileDialogState extends State<ProfileDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? AppTheme.darkSurface : Colors.grey[100],
+                          color: isDark
+                              ? AppTheme.darkSurface
+                              : Colors.grey[100],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: theme.borderColor),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.shield, 
-                              color: widget.role == 'validator' ? const Color(0xFF0E7C61) : AppTheme.primaryColor, 
-                              size: 24),
+                            Icon(
+                              Icons.shield,
+                              color: widget.role == 'validator'
+                                  ? const Color(0xFF0E7C61)
+                                  : AppTheme.primaryColor,
+                              size: 24,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               "Security Tier",
-                              style: TextStyle(fontSize: 11, color: theme.subtleTextColor),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.subtleTextColor,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.role == 'validator' ? "Level 2" : "Level 1",
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.headingColor),
+                              widget.role == 'validator'
+                                  ? "Level 2"
+                                  : "Level 1",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: theme.headingColor,
+                              ),
                             ),
                           ],
                         ),
@@ -230,24 +274,39 @@ class _ProfileDialogState extends State<ProfileDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? AppTheme.darkSurface : Colors.grey[100],
+                          color: isDark
+                              ? AppTheme.darkSurface
+                              : Colors.grey[100],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: theme.borderColor),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.verified_user, 
-                              color: widget.role == 'validator' ? const Color(0xFF0E7C61) : Colors.blue, 
-                              size: 24),
+                            Icon(
+                              Icons.verified_user,
+                              color: widget.role == 'validator'
+                                  ? const Color(0xFF0E7C61)
+                                  : Colors.blue,
+                              size: 24,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               "Access Level",
-                              style: TextStyle(fontSize: 11, color: theme.subtleTextColor),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.subtleTextColor,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.role == 'validator' ? "Resource Management" : "Full System Access",
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.headingColor),
+                              widget.role == 'validator'
+                                  ? "Resource Management"
+                                  : "Full System Access",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: theme.headingColor,
+                              ),
                             ),
                           ],
                         ),
@@ -256,7 +315,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // --- PERMISSIONS BREAKDOWN (for thesis documentation) ---
                 Container(
                   width: double.infinity,
@@ -271,21 +330,32 @@ class _ProfileDialogState extends State<ProfileDialog> {
                     children: [
                       Text(
                         "Permissions",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.headingColor),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.headingColor,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       if (widget.role == 'admin') ...[
                         _permissionRow("Dashboard & Analytics", true, theme),
                         _permissionRow("User Management", true, theme),
-                        _permissionRow("Session Reviews & AI Logs", true, theme),
-                        _permissionRow("Resource Management", false, theme),
+                        _permissionRow(
+                          "Session Reviews & AI Logs",
+                          true,
+                          theme,
+                        ),
+                        _permissionRow("Resource Management", true, theme),
                       ] else ...[
                         _permissionRow("Resource Management", true, theme),
-                        _permissionRow("Upload Reference Audio", true, theme),
                         _permissionRow("Manage Transcripts", true, theme),
                         _permissionRow("Dashboard & Analytics", false, theme),
                         _permissionRow("User Management", false, theme),
-                        _permissionRow("Session Reviews & AI Logs", false, theme),
+                        _permissionRow(
+                          "Session Reviews & AI Logs",
+                          false,
+                          theme,
+                        ),
                       ],
                     ],
                   ),
@@ -320,7 +390,10 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                       child: const Text("Save Changes"),
                     ),
