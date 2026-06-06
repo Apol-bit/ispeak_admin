@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'session_reviews_screen.dart'; 
+import 'resources_screen.dart';
 import 'login_screen.dart'; 
 import 'profile_dialog.dart';
 
@@ -72,6 +73,7 @@ class _MainLayoutState extends State<MainLayout> {
     const DashboardScreen(),
     const UsersScreen(),
     const SessionReviewsScreen(), 
+    const ResourcesScreen(),
   ];
 
   Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
@@ -220,6 +222,7 @@ class _MainLayoutState extends State<MainLayout> {
           _navItem(Icons.dashboard, "Dashboard", 0),
           _navItem(Icons.people, "Users", 1),
           _navItem(Icons.analytics, "Session Reviews", 2),
+          _navItem(Icons.library_books, "Resources", 3),
 
           const Spacer(),
 
@@ -540,6 +543,7 @@ class _MainLayoutState extends State<MainLayout> {
             _drawerItem(Icons.dashboard, "Dashboard", 0),
             _drawerItem(Icons.people, "Users", 1),
             _drawerItem(Icons.analytics, "Session Reviews", 2),
+            _drawerItem(Icons.library_books, "Resources", 3),
             const Spacer(),
             ListTile(
               leading: Icon(
