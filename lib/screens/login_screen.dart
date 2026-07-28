@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'main_layout.dart';
 import 'validator_layout.dart';
 
@@ -52,6 +53,14 @@ class _LoginScreenState extends State<LoginScreen> {
           final String userRole = data['user']?['role'] ?? 'user';
           final String userName = '${data['user']?['firstName'] ?? 'User'} ${data['user']?['lastName'] ?? ''}'.trim();
           final String userEmail = data['user']?['email'] ?? 'user@ispeak.com';
+
+          // Persist the session so page reloads skip login
+          await AuthService.saveSession(
+            token: data['token'],
+            userName: userName,
+            userEmail: userEmail,
+            userRole: userRole,
+          );
 
           if (userRole == 'admin') {
             // VALID ADMIN → Route to Admin Control Center (Dashboard/Logs)

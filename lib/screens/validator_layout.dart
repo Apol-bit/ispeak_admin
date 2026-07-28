@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'resources_screen.dart';
 import 'login_screen.dart'; 
 import 'profile_dialog.dart';
@@ -412,6 +413,9 @@ class _ValidatorLayoutState extends State<ValidatorLayout> {
               tooltip: 'Validator Account',
               onSelected: (value) async {
                 if (value == 'logout') {
+                  await AuthService.clearSession();
+
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Logging out...')),
                   );

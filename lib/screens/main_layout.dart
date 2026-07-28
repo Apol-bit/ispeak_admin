@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
 import 'session_reviews_screen.dart'; 
@@ -421,6 +422,9 @@ class _MainLayoutState extends State<MainLayout> {
               tooltip: 'Admin Account',
               onSelected: (value) async {
                 if (value == 'logout') {
+                  await AuthService.clearSession();
+
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Logging out...')),
                   );
