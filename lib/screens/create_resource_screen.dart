@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import '../config/api_config.dart';
+import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 
 class CreateResourceScreen extends StatefulWidget {
@@ -11,7 +14,7 @@ class CreateResourceScreen extends StatefulWidget {
   const CreateResourceScreen({super.key, this.resource});
 
   @override
-  _CreateResourceScreenState createState() => _CreateResourceScreenState();
+  State<CreateResourceScreen> createState() => _CreateResourceScreenState();
 }
 
 class _CreateResourceScreenState extends State<CreateResourceScreen> {
@@ -41,6 +44,30 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
   late String _proTip;
 
   bool _isLoading = false;
+  Uint8List? _referenceAudioBytes;
+  String? _referenceAudioName;
+
+  Future<void> _pickReferenceAudio() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['wav', 'mp3', 'm4a', 'flac', 'ogg', 'aac'],
+      withData: true,
+    );
+    if (!mounted || result == null) return;
+    final selected = result.files.single;
+    if (selected.bytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to read the selected audio file.'),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _referenceAudioBytes = selected.bytes;
+      _referenceAudioName = selected.name;
+    });
+  }
 
   @override
   void initState() {
@@ -54,12 +81,20 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
     // Safety checks for Enums just in case DB data is missing
     _difficulty = r?['difficulty'] ?? 'Beginner';
-    if (!['Beginner', 'Intermediate', 'Advanced', 'None'].contains(_difficulty))
+    if (![
+      'Beginner',
+      'Intermediate',
+      'Advanced',
+      'None',
+    ].contains(_difficulty)) {
       _difficulty = 'Beginner';
+    }
 
     _language = r?['language'] ?? 'English';
-    if (!['English', 'Filipino', 'Taglish', 'None'].contains(_language))
+    if (!['English', 'Filipino', 'Taglish', 'None'].contains(_language)) {
       _language = 'English';
+    }
+    if (_type != 'GuidedTask' && _language == 'None') _language = 'English';
 
     // Pull estimatedMinutes from existing data, default to 2
     _estimatedMinutes = r?['estimatedMinutes'] ?? 2;
@@ -96,6 +131,15 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
       // Use MultipartRequest to support file upload
       final request = http.MultipartRequest(isEdit ? 'PUT' : 'POST', url);
+      if (_referenceAudioBytes != null && _referenceAudioName != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'referenceAudio',
+            _referenceAudioBytes!,
+            filename: _referenceAudioName,
+          ),
+        );
+      }
 
       // Add common text fields
       request.fields['type'] = _type;
@@ -126,8 +170,8 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
         request.fields['estimatedMinutes'] = _estimatedMinutes.toString();
       }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final response = await ApiClient.sendMultipart(request);
+      if (!mounted) return;
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -151,11 +195,12 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -164,7 +209,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
     final theme = ThemeProvider.of(context)!;
     final isEdit = widget.resource != null;
 
-    InputDecoration _inputStyle(String label) {
+    InputDecoration inputStyle(String label) {
       return InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: theme.subtleTextColor),
@@ -203,7 +248,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
               border: Border.all(color: theme.borderColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
+                  color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -215,8 +260,8 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _type,
-                    decoration: _inputStyle('Resource Type'),
+                    initialValue: _type,
+                    decoration: inputStyle('Resource Type'),
                     dropdownColor: theme.cardColor,
                     style: TextStyle(color: theme.bodyTextColor),
                     items: ['Script', 'Challenge', 'GuidedTask'].map((
@@ -227,14 +272,19 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                         child: Text(value),
                       );
                     }).toList(),
-                    onChanged: (newValue) => setState(() => _type = newValue!),
+                    onChanged: (newValue) => setState(() {
+                      _type = newValue!;
+                      if (_type != 'GuidedTask' && _language == 'None') {
+                        _language = 'English';
+                      }
+                    }),
                   ),
                   const SizedBox(height: 20),
 
                   TextFormField(
                     initialValue: _title,
                     style: TextStyle(color: theme.bodyTextColor),
-                    decoration: _inputStyle('Title (e.g., Quick Pitch)'),
+                    decoration: inputStyle('Title (e.g., Quick Pitch)'),
                     validator: (value) => value!.isEmpty ? 'Required' : null,
                     onSaved: (value) => _title = value!,
                   ),
@@ -243,7 +293,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                   TextFormField(
                     initialValue: _description,
                     style: TextStyle(color: theme.bodyTextColor),
-                    decoration: _inputStyle('Short Description'),
+                    decoration: inputStyle('Short Description'),
                     validator: (value) => value!.isEmpty ? 'Required' : null,
                     onSaved: (value) => _description = value!,
                   ),
@@ -253,8 +303,8 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _difficulty,
-                          decoration: _inputStyle('Difficulty'),
+                          initialValue: _difficulty,
+                          decoration: inputStyle('Difficulty'),
                           dropdownColor: theme.cardColor,
                           style: TextStyle(color: theme.bodyTextColor),
                           items:
@@ -276,18 +326,22 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _language,
-                          decoration: _inputStyle('Language'),
+                          initialValue: _language,
+                          decoration: inputStyle('Language'),
                           dropdownColor: theme.cardColor,
                           style: TextStyle(color: theme.bodyTextColor),
-                          items: ['English', 'Filipino', 'Taglish', 'None'].map(
-                            (String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            },
-                          ).toList(),
+                          items:
+                              [
+                                'English',
+                                'Filipino',
+                                'Taglish',
+                                if (_type == 'GuidedTask') 'None',
+                              ].map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
                           onChanged: (newValue) =>
                               setState(() => _language = newValue!),
                         ),
@@ -302,7 +356,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                     TextFormField(
                       initialValue: _estimatedMinutes.toString(),
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle('Estimated Time (Minutes)'),
+                      decoration: inputStyle('Estimated Time (Minutes)'),
                       keyboardType: TextInputType.number,
                       onSaved: (value) =>
                           _estimatedMinutes = int.tryParse(value ?? '2') ?? 2,
@@ -313,7 +367,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                       maxLength: 5000,
                       style: TextStyle(color: theme.bodyTextColor),
                       decoration:
-                          _inputStyle(
+                          inputStyle(
                             'Transcript (The text the user will read)',
                           ).copyWith(
                             alignLabelWithHint: true,
@@ -336,7 +390,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                           child: TextFormField(
                             initialValue: _timeLimitSeconds.toString(),
                             style: TextStyle(color: theme.bodyTextColor),
-                            decoration: _inputStyle('Time Limit (Seconds)'),
+                            decoration: inputStyle('Time Limit (Seconds)'),
                             keyboardType: TextInputType.number,
                             onSaved: (value) => _timeLimitSeconds =
                                 int.tryParse(value ?? '60') ?? 60,
@@ -347,8 +401,8 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                           child: TextFormField(
                             initialValue: _targetMetric,
                             style: TextStyle(color: theme.bodyTextColor),
-                            decoration: _inputStyle(
-                              'Target Metric (e.g., 120-140 WPM)',
+                            decoration: inputStyle(
+                              'Target Metric (e.g., 120-150 WPM)',
                             ),
                             onSaved: (value) => _targetMetric = value ?? '',
                           ),
@@ -360,7 +414,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                       initialValue: _prompt,
                       maxLength: 5000,
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle('Prompt / Context'),
+                      decoration: inputStyle('Prompt / Context'),
                       maxLines: 3,
                       onSaved: (value) => _prompt = value ?? '',
                     ),
@@ -368,7 +422,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                     TextFormField(
                       initialValue: _tipsRaw,
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle(
+                      decoration: inputStyle(
                         'Tips (Press Enter for a new bullet point)',
                       ),
                       maxLines: 4,
@@ -383,7 +437,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                           child: TextFormField(
                             initialValue: _category,
                             style: TextStyle(color: theme.bodyTextColor),
-                            decoration: _inputStyle(
+                            decoration: inputStyle(
                               'Category (e.g., Foundation)',
                             ),
                             onSaved: (value) => _category = value ?? '',
@@ -394,7 +448,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                           child: TextFormField(
                             initialValue: _iconName,
                             style: TextStyle(color: theme.bodyTextColor),
-                            decoration: _inputStyle(
+                            decoration: inputStyle(
                               'Icon Name (e.g., volume_up)',
                             ),
                             onSaved: (value) => _iconName = value ?? '',
@@ -406,7 +460,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                     TextFormField(
                       initialValue: _estimatedMinutes.toString(),
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle('Estimated Time (Minutes)'),
+                      decoration: inputStyle('Estimated Time (Minutes)'),
                       keyboardType: TextInputType.number,
                       onSaved: (value) =>
                           _estimatedMinutes = int.tryParse(value ?? '5') ?? 5,
@@ -416,7 +470,7 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                       initialValue: _stepsRaw,
                       maxLength: 5000,
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle(
+                      decoration: inputStyle(
                         'Steps (Press Enter for a new numbered step)',
                       ),
                       maxLines: 6,
@@ -426,10 +480,36 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                     TextFormField(
                       initialValue: _proTip,
                       style: TextStyle(color: theme.bodyTextColor),
-                      decoration: _inputStyle('Pro Tip'),
+                      decoration: inputStyle('Pro Tip'),
                       maxLines: 2,
                       onSaved: (value) => _proTip = value ?? '',
                     ),
+                  ],
+
+                  if (_type != 'GuidedTask') ...[
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _pickReferenceAudio,
+                      icon: const Icon(Icons.audio_file),
+                      label: Text(
+                        _referenceAudioName ??
+                            (widget.resource?['referenceAudioPath']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                    true
+                                ? 'Replace reference audio'
+                                : 'Add reference audio (optional)'),
+                      ),
+                    ),
+                    if (_referenceAudioName != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _referenceAudioName!,
+                          style: TextStyle(color: theme.subtleTextColor),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                   ],
 
                   const SizedBox(height: 32),

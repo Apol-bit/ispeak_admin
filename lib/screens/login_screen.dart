@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
   // SECURE Admin/Validator Authentication Logic connecting to Node.js Backend
   Future<void> _handleLogin() async {
     final isValid = _formKey.currentState!.validate();
@@ -36,33 +37,34 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/login'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'email': _emailController.text.trim(),
-            'password': _passwordController.text.trim(),
-          }),
-        );
+        final response = await http
+            .post(
+              Uri.parse('${ApiConfig.baseUrl}/login'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'email': _emailController.text.trim(),
+                'password': _passwordController.text.trim(),
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
 
         final data = jsonDecode(response.body);
 
         if (response.statusCode == 200 && data['token'] != null) {
-          
           // Extract role safely, default to 'user' if missing
           final String userRole = data['user']?['role'] ?? 'user';
-          final String userName = '${data['user']?['firstName'] ?? 'User'} ${data['user']?['lastName'] ?? ''}'.trim();
-          final String userEmail = data['user']?['email'] ?? 'user@ispeak.com';
-
-          // Persist the session so page reloads skip login
-          await AuthService.saveSession(
-            token: data['token'],
-            userName: userName,
-            userEmail: userEmail,
-            userRole: userRole,
-          );
+          final String userName =
+              '${data['user']?['firstName'] ?? 'User'} ${data['user']?['lastName'] ?? ''}'
+                  .trim();
+          final String userEmail = data['user']?['email'] ?? '';
 
           if (userRole == 'admin') {
+            await AuthService.saveSession(
+              token: data['token'],
+              userName: userName,
+              userEmail: userEmail,
+              userRole: userRole,
+            );
             // VALID ADMIN → Route to Admin Control Center (Dashboard/Logs)
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
@@ -71,16 +73,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.green,
               ),
             );
-            
+
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => MainLayout(
-                adminName: userName,
-                adminEmail: userEmail,
-              )),
+              MaterialPageRoute(
+                builder: (context) =>
+                    MainLayout(adminName: userName, adminEmail: userEmail),
+              ),
             );
-
           } else if (userRole == 'validator') {
+            await AuthService.saveSession(
+              token: data['token'],
+              userName: userName,
+              userEmail: userEmail,
+              userRole: userRole,
+            );
             // VALID VALIDATOR → Route to Validator Dashboard (Resources only)
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
@@ -89,27 +96,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.green,
               ),
             );
-            
+
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => ValidatorLayout(
-                validatorName: userName,
-                validatorEmail: userEmail,
-              )),
+              MaterialPageRoute(
+                builder: (context) => ValidatorLayout(
+                  validatorName: userName,
+                  validatorEmail: userEmail,
+                ),
+              ),
             );
-
           } else {
             // BLOCK REGULAR USERS
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Access Denied: You do not have admin or validator privileges.'),
+                content: Text(
+                  'Access Denied: You do not have admin or validator privileges.',
+                ),
                 backgroundColor: Colors.redAccent,
                 behavior: SnackBarBehavior.floating,
               ),
             );
           }
-
         } else {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +133,9 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Network error. Check your connection to the server.'),
+            content: Text(
+              'Network error. Check your connection to the server.',
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -144,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 450), 
+                constraints: const BoxConstraints(maxWidth: 450),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -155,13 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     Hero(
                       tag: 'logo',
                       child: Image.asset(
-                        'assets/images/ispeak_logo.png', 
+                        'assets/images/ispeak_logo.png',
                         height: 80,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.admin_panel_settings,
-                          size: 80,
-                          color: AppTheme.primaryColor,
-                        ),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.admin_panel_settings,
+                              size: 80,
+                              color: AppTheme.primaryColor,
+                            ),
                       ),
                     ),
 
@@ -190,10 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Secure Admin Control Center',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
 
                     const SizedBox(height: 50),
@@ -206,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -249,21 +258,34 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintStyle: TextStyle(color: Colors.grey[400]),
                                 filled: true,
                                 fillColor: Colors.grey[50],
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
-                              validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
                             ),
 
                             const SizedBox(height: 20),
@@ -283,24 +305,35 @@ class _LoginScreenState extends State<LoginScreen> {
                               controller: _passwordController,
                               obscureText: !_isPasswordVisible,
                               textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _isLoading ? null : _handleLogin(),
+                              onFieldSubmitted: (_) =>
+                                  _isLoading ? null : _handleLogin(),
                               decoration: InputDecoration(
                                 hintText: 'Enter your password',
                                 hintStyle: TextStyle(color: Colors.grey[400]),
                                 filled: true,
                                 fillColor: Colors.grey[50],
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primaryColor,
+                                    width: 1.5,
+                                  ),
                                 ),
                                 suffixIcon: GestureDetector(
                                   onTap: () {
@@ -316,7 +349,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Required'
+                                  : null,
                             ),
 
                             const SizedBox(height: 12),
@@ -327,7 +363,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Contact Super Admin for password reset.'),
+                                      content: Text(
+                                        'Contact Super Admin for password reset.',
+                                      ),
                                     ),
                                   );
                                 },
@@ -386,10 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       '© 2026 iSpeak. Admin Portal',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
 
                     const SizedBox(height: 20),

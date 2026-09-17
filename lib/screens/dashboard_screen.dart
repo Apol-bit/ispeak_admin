@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -29,43 +29,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _refreshData() async {
-    await Future.wait([
-      _fetchGlobalStats(),
-      _fetchRecentSessions(),
-    ]);
+    await Future.wait([_fetchGlobalStats(), _fetchRecentSessions()]);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Dashboard data updated"), duration: Duration(seconds: 2)),
+        const SnackBar(
+          content: Text("Dashboard data updated"),
+          duration: Duration(seconds: 2),
+        ),
       );
     }
   }
 
-Future<void> _fetchGlobalStats() async {
+  Future<void> _fetchGlobalStats() async {
     setState(() => _isLoadingStats = true);
     try {
       final url = '${ApiConfig.baseUrl}/admin/stats';
-      print('Fetching stats from: $url'); // ← ADD THIS
-      final response = await http.get(Uri.parse(url));
-      
-      print('Response status: ${response.statusCode}'); // ← ADD THIS
-      print('Response body: ${response.body}'); // ← ADD THIS
-      
+      final response = await ApiClient.get(Uri.parse(url));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _totalUsers = data['totalUsers'] ?? 0;
           _totalSessions = data['totalSessions'] ?? 0;
-          _avgAppScore = data['avgAppScore'] ?? 0; 
+          _avgAppScore = data['avgAppScore'] ?? 0;
         });
-      } else {
-        print('Error: Status ${response.statusCode}'); // ← ADD THIS
       }
     } catch (e) {
       debugPrint("Error fetching admin stats: $e");
-      print("Exception: $e"); // ← ADD THIS
     } finally {
-      setState(() => _isLoadingStats = false);
+      if (mounted) setState(() => _isLoadingStats = false);
     }
   }
 
@@ -73,9 +67,12 @@ Future<void> _fetchGlobalStats() async {
     setState(() => _isLoadingSessions = true);
 
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/admin/recent-sessions'));
+      final response = await ApiClient.get(
+        Uri.parse('${ApiConfig.baseUrl}/admin/recent-sessions'),
+      );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         setState(() {
           _recentSessions = jsonDecode(response.body);
         });
@@ -83,7 +80,7 @@ Future<void> _fetchGlobalStats() async {
     } catch (e) {
       debugPrint("Error fetching recent sessions: $e");
     } finally {
-      setState(() => _isLoadingSessions = false);
+      if (mounted) setState(() => _isLoadingSessions = false);
     }
   }
 
@@ -106,7 +103,9 @@ Future<void> _fetchGlobalStats() async {
     if (_isLoadingStats) {
       return const Scaffold(
         backgroundColor: Colors.transparent,
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryColor),
+        ),
       );
     }
 
@@ -119,9 +118,27 @@ Future<void> _fetchGlobalStats() async {
           LayoutBuilder(
             builder: (context, constraints) {
               final cards = [
-                _buildStatCard('Total Users', '$_totalUsers', Icons.people, AppTheme.primaryColor, isDark),
-                _buildStatCard('Total Sessions', '$_totalSessions', Icons.mic, Colors.green, isDark),
-                _buildStatCard('Avg App Score', '$_avgAppScore%', Icons.stars, Colors.orange, isDark),
+                _buildStatCard(
+                  'Total Users',
+                  '$_totalUsers',
+                  Icons.people,
+                  AppTheme.primaryColor,
+                  isDark,
+                ),
+                _buildStatCard(
+                  'Total Sessions',
+                  '$_totalSessions',
+                  Icons.mic,
+                  Colors.green,
+                  isDark,
+                ),
+                _buildStatCard(
+                  'Avg App Score',
+                  '$_avgAppScore%',
+                  Icons.stars,
+                  Colors.orange,
+                  isDark,
+                ),
               ];
 
               if (constraints.maxWidth < 800) {
@@ -169,105 +186,175 @@ Future<void> _fetchGlobalStats() async {
                 border: Border.all(color: theme.borderColor),
               ),
               child: _isLoadingSessions
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryColor,
+                      ),
+                    )
                   : _recentSessions.isEmpty
-                      ? Center(
-                          child: Text("No sessions recorded yet.",
-                              style: TextStyle(color: theme.subtleTextColor)))
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              // ---> THE VERTICAL SCROLL FIX <---
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.vertical,
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                                    child: Theme(
-                                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                      child: DataTable(
-                                        headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                                        headingTextStyle: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.headingColor,
+                  ? Center(
+                      child: Text(
+                        "No sessions recorded yet.",
+                        style: TextStyle(color: theme.subtleTextColor),
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          // ---> THE VERTICAL SCROLL FIX <---
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: constraints.maxWidth,
+                                ),
+                                child: Theme(
+                                  data: Theme.of(
+                                    context,
+                                  ).copyWith(dividerColor: Colors.transparent),
+                                  child: DataTable(
+                                    headingRowColor: WidgetStateProperty.all(
+                                      theme.scaffoldColor,
+                                    ),
+                                    headingTextStyle: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.headingColor,
+                                    ),
+                                    columnSpacing: 24.0,
+                                    horizontalMargin: 24.0,
+                                    dataRowMaxHeight: 60,
+                                    columns: const [
+                                      DataColumn(
+                                        label: Expanded(
+                                          child: Text('Date & Time'),
                                         ),
-                                        columnSpacing: 24.0,
-                                        horizontalMargin: 24.0,
-                                        dataRowMaxHeight: 60,
-                                        columns: const [
-                                          DataColumn(label: Expanded(child: Text('Date & Time'))),
-                                          DataColumn(label: Text('Session ID')),
-                                          DataColumn(label: Text('WPM')),
-                                          DataColumn(label: Text('Clarity')),
-                                          DataColumn(label: Text('Energy')),
-                                          DataColumn(label: Text('Overall')),
-                                          DataColumn(label: Text('Status')),
-                                        ],
-                                        rows: _recentSessions.map((session) {
-                                          int overall = (session['overallScore'] ?? 0).toInt();
-                                          bool isPending = overall == 0;
+                                      ),
+                                      DataColumn(label: Text('Session ID')),
+                                      DataColumn(label: Text('WPM')),
+                                      DataColumn(label: Text('Clarity')),
+                                      DataColumn(label: Text('Energy')),
+                                      DataColumn(label: Text('Overall')),
+                                      DataColumn(label: Text('Status')),
+                                    ],
+                                    rows: _recentSessions.map((session) {
+                                      int overall =
+                                          (session['overallScore'] ?? 0)
+                                              .toInt();
+                                      String sessionStatus =
+                                          session['status'] ?? 'Pending';
+                                      bool isPending =
+                                          sessionStatus == 'Pending';
+                                      bool isFailed = sessionStatus == 'Failed';
+                                      Color processingColor = isPending
+                                          ? Colors.orange
+                                          : isFailed
+                                          ? Colors.red
+                                          : Colors.green;
+                                      String processingLabel = isPending
+                                          ? 'Pending AI'
+                                          : isFailed
+                                          ? 'Failed'
+                                          : 'Processed';
 
-                                          return DataRow(
-                                            color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                              return isDark ? AppTheme.darkSurface : theme.cardColor;
+                                      return DataRow(
+                                        color:
+                                            WidgetStateProperty.resolveWith<
+                                              Color?
+                                            >((states) {
+                                              return isDark
+                                                  ? AppTheme.darkSurface
+                                                  : theme.cardColor;
                                             }),
-                                            cells: [
-                                              DataCell(Text(_formatDate(session['createdAt']),
-                                                  style: TextStyle(color: theme.subtleTextColor))),
-                                              DataCell(Text(
-                                                session['_id'].toString().substring(0, 8) + '...',
+                                        cells: [
+                                          DataCell(
+                                            Text(
+                                              _formatDate(session['createdAt']),
+                                              style: TextStyle(
+                                                color: theme.subtleTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              '${session['_id'].toString().substring(0, 8)}...',
+                                              style: TextStyle(
+                                                fontFamily: 'monospace',
+                                                color: theme.bodyTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              '${session['wpmScore'] ?? 0}',
+                                              style: TextStyle(
+                                                color: theme.bodyTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              '${session['clarityScore'] ?? 0}',
+                                              style: TextStyle(
+                                                color: theme.bodyTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              '${session['energyScore'] ?? 0}',
+                                              style: TextStyle(
+                                                color: theme.bodyTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Text(
+                                              '$overall',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: isPending
+                                                    ? theme.subtleTextColor
+                                                    : AppTheme.primaryColor,
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: processingColor
+                                                    .withValues(alpha: 0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                processingLabel,
                                                 style: TextStyle(
-                                                  fontFamily: 'monospace',
-                                                  color: theme.bodyTextColor,
-                                                ),
-                                              )),
-                                              DataCell(Text('${session['paceScore'] ?? 0}', 
-                                                  style: TextStyle(color: theme.bodyTextColor))),
-                                              DataCell(Text('${session['clarityScore'] ?? 0}', 
-                                                  style: TextStyle(color: theme.bodyTextColor))),
-                                              DataCell(Text('${session['energyScore'] ?? 0}',
-                                                  style: TextStyle(color: theme.bodyTextColor))),
-                                              DataCell(Text(
-                                                '$overall',
-                                                style: TextStyle(
+                                                  color: processingColor,
+                                                  fontSize: 12,
                                                   fontWeight: FontWeight.bold,
-                                                  color: isPending
-                                                      ? theme.subtleTextColor
-                                                      : AppTheme.primaryColor,
-                                                ),
-                                              )),
-                                              DataCell(
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                  decoration: BoxDecoration(
-                                                    color: isPending
-                                                        ? Colors.orange.withOpacity(0.15)
-                                                        : Colors.green.withOpacity(0.15),
-                                                    borderRadius: BorderRadius.circular(20),
-                                                  ),
-                                                  child: Text(
-                                                    isPending ? 'Pending AI' : 'Processed',
-                                                    style: TextStyle(
-                                                      color: isPending ? Colors.orange.shade400 : Colors.green.shade400,
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
                                                 ),
                                               ),
-                                            ],
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
         ],
@@ -281,7 +368,13 @@ Future<void> _fetchGlobalStats() async {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -290,13 +383,22 @@ Future<void> _fetchGlobalStats() async {
         border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
         boxShadow: isDark
             ? []
-            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 12),
@@ -307,7 +409,9 @@ Future<void> _fetchGlobalStats() async {
                 Text(
                   title,
                   style: TextStyle(
-                    color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade600,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : Colors.grey.shade600,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),

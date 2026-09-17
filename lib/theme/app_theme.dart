@@ -37,13 +37,19 @@ class ThemeProvider extends InheritedWidget {
   }
 
   // Convenience color getters — use these in screens instead of raw ternaries
-  Color get cardColor       => isDarkMode ? AppTheme.darkSurface      : Colors.white;
-  Color get borderColor     => isDarkMode ? AppTheme.darkBorder        : const Color(0xFFE5E7EB);
-  Color get bodyTextColor   => isDarkMode ? AppTheme.darkTextPrimary   : Colors.black87;
-  Color get subtleTextColor => isDarkMode ? AppTheme.darkTextSecondary : Colors.grey;
-  Color get headingColor    => isDarkMode ? AppTheme.darkTextPrimary   : AppTheme.textPrimary;
-  Color get scaffoldColor   => isDarkMode ? AppTheme.darkBackground    : AppTheme.backgroundColor;
-  Color get tableHeadColor  => isDarkMode ? AppTheme.darkTextPrimary   : Colors.black87;
+  Color get cardColor => isDarkMode ? AppTheme.darkSurface : Colors.white;
+  Color get borderColor =>
+      isDarkMode ? AppTheme.darkBorder : const Color(0xFFE5E7EB);
+  Color get bodyTextColor =>
+      isDarkMode ? AppTheme.darkTextPrimary : Colors.black87;
+  Color get subtleTextColor =>
+      isDarkMode ? AppTheme.darkTextSecondary : Colors.grey;
+  Color get headingColor =>
+      isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+  Color get scaffoldColor =>
+      isDarkMode ? AppTheme.darkBackground : AppTheme.backgroundColor;
+  Color get tableHeadColor =>
+      isDarkMode ? AppTheme.darkTextPrimary : Colors.black87;
 
   @override
   bool updateShouldNotify(ThemeProvider oldWidget) =>

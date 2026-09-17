@@ -4,9 +4,19 @@ import 'screens/login_screen.dart';
 import 'screens/main_layout.dart';
 import 'screens/validator_layout.dart';
 import 'services/auth_service.dart';
+import 'services/api_client.dart';
+
+final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ApiClient.onAuthenticationExpired = () async {
+    await AuthService.clearSession();
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  };
   runApp(const AdminPanelApp());
 }
 
@@ -16,12 +26,13 @@ class AdminPanelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'iSpeak Admin',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppTheme.primaryColor,
         scaffoldBackgroundColor: AppTheme.backgroundColor,
-        fontFamily: AppTheme.fontFamily, 
+        fontFamily: AppTheme.fontFamily,
       ),
       home: const AuthGate(),
     );
@@ -48,7 +59,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _checkSession() async {
-    final session = await AuthService.getSession();
+    final session = await AuthService.validateSession();
 
     if (!mounted) return;
 
@@ -61,7 +72,10 @@ class _AuthGateState extends State<AuthGate> {
       if (role == 'admin') {
         destination = MainLayout(adminName: name, adminEmail: email);
       } else if (role == 'validator') {
-        destination = ValidatorLayout(validatorName: name, validatorEmail: email);
+        destination = ValidatorLayout(
+          validatorName: name,
+          validatorEmail: email,
+        );
       } else {
         // Role not admin/validator — clear invalid session and show login
         await AuthService.clearSession();

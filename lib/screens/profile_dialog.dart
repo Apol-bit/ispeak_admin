@@ -47,7 +47,8 @@ class _ProfileDialogState extends State<ProfileDialog> {
       backgroundColor: theme.scaffoldColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
-        width: 500,
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 500),
         padding: const EdgeInsets.all(28),
         child: SingleChildScrollView(
           child: Form(
@@ -103,7 +104,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                                   (widget.role == 'validator'
                                           ? const Color(0xFF0E7C61)
                                           : Colors.green)
-                                      .withOpacity(0.12),
+                                      .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -414,7 +415,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
         children: [
           Icon(
             granted ? Icons.check_circle : Icons.cancel,
-            color: granted ? Colors.green : Colors.red.withOpacity(0.5),
+            color: granted ? Colors.green : Colors.red.withValues(alpha: 0.5),
             size: 18,
           ),
           const SizedBox(width: 10),

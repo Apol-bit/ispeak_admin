@@ -3,9 +3,9 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'users_screen.dart';
-import 'session_reviews_screen.dart'; 
+import 'session_reviews_screen.dart';
 import 'resources_screen.dart';
-import 'login_screen.dart'; 
+import 'login_screen.dart';
 import 'profile_dialog.dart';
 
 class MainLayout extends StatefulWidget {
@@ -15,9 +15,9 @@ class MainLayout extends StatefulWidget {
 
   // Added required parameters to the constructor
   const MainLayout({
-    super.key, 
-    required this.adminName, 
-    required this.adminEmail
+    super.key,
+    required this.adminName,
+    required this.adminEmail,
   });
 
   @override
@@ -73,15 +73,15 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const UsersScreen(),
-    const SessionReviewsScreen(), 
+    const SessionReviewsScreen(),
     const ResourcesScreen(),
   ];
 
-  Color get _sidebarColor => _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
+  Color get _sidebarColor =>
+      _isDarkMode ? AppTheme.darkSidebar : AppTheme.accentColor;
   Color get _bodyColor =>
       _isDarkMode ? AppTheme.darkBackground : AppTheme.backgroundColor;
-  Color get _topBarColor =>
-      _isDarkMode ? AppTheme.darkSurface : Colors.white;
+  Color get _topBarColor => _isDarkMode ? AppTheme.darkSurface : Colors.white;
   Color get _topBarText =>
       _isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
   Color get _topBarBorder =>
@@ -100,22 +100,30 @@ class _MainLayoutState extends State<MainLayout> {
                 backgroundColor: _sidebarColor,
                 title: Row(
                   children: [
-                    Image.asset('assets/images/whitelogo.png',
-                        height: 36, width: 36, fit: BoxFit.contain),
+                    Image.asset(
+                      'assets/images/whitelogo.png',
+                      height: 36,
+                      width: 36,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(width: 8),
-                    const Text("iSpeak Admin",
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "iSpeak Admin",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 iconTheme: const IconThemeData(color: Colors.white),
                 actions: [
                   IconButton(
                     icon: Icon(
-                        _isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: Colors.white),
-                    onPressed: () =>
-                        setState(() => _isDarkMode = !_isDarkMode),
+                      _isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
                   ),
                 ],
               )
@@ -152,13 +160,13 @@ class _MainLayoutState extends State<MainLayout> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _sidebarColor.withOpacity(0.95),
-            _sidebarColor.withOpacity(0.85),
+            _sidebarColor.withValues(alpha: 0.95),
+            _sidebarColor.withValues(alpha: 0.85),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(2, 0),
           ),
@@ -206,8 +214,11 @@ class _MainLayoutState extends State<MainLayout> {
                                   ),
                                 ),
                               ),
-                              const Icon(Icons.menu,
-                                  color: Colors.white70, size: 20),
+                              const Icon(
+                                Icons.menu,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
                             ],
                           ),
                         ),
@@ -249,16 +260,17 @@ class _MainLayoutState extends State<MainLayout> {
               duration: const Duration(milliseconds: 300),
               height: 44,
               padding: EdgeInsets.symmetric(
-                  horizontal: _isSidebarExpanded ? 12.0 : 4.0),
+                horizontal: _isSidebarExpanded ? 12.0 : 4.0,
+              ),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withOpacity(0.12),
-                    Colors.white.withOpacity(0.04)
+                    Colors.white.withValues(alpha: 0.12),
+                    Colors.white.withValues(alpha: 0.04),
                   ],
                 ),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -267,7 +279,7 @@ class _MainLayoutState extends State<MainLayout> {
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.25),
+                      color: Colors.amber.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -299,7 +311,7 @@ class _MainLayoutState extends State<MainLayout> {
                                 : "Switch to dark mode",
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 10,
                             ),
                           ),
@@ -333,28 +345,34 @@ class _MainLayoutState extends State<MainLayout> {
               height: 44,
               margin: const EdgeInsets.symmetric(horizontal: 8),
               padding: EdgeInsets.symmetric(
-                  horizontal: _isSidebarExpanded ? 12.0 : 6.0),
+                horizontal: _isSidebarExpanded ? 12.0 : 6.0,
+              ),
               decoration: BoxDecoration(
                 gradient: active
                     ? LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.25),
-                          Colors.white.withOpacity(0.1),
+                          Colors.white.withValues(alpha: 0.25),
+                          Colors.white.withValues(alpha: 0.1),
                         ],
                       )
                     : null,
                 borderRadius: BorderRadius.circular(16),
                 border: active
                     ? Border.all(
-                        color: Colors.white.withOpacity(0.3), width: 1.5)
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1.5,
+                      )
                     : null,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon,
-                      color: active ? Colors.white : Colors.white70, size: 16),
+                  Icon(
+                    icon,
+                    color: active ? Colors.white : Colors.white70,
+                    size: 16,
+                  ),
                   if (_isSidebarExpanded) ...[
                     const SizedBox(width: 12),
                     Expanded(
@@ -363,8 +381,9 @@ class _MainLayoutState extends State<MainLayout> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: active ? Colors.white : Colors.white70,
-                          fontWeight:
-                              active ? FontWeight.w600 : FontWeight.w500,
+                          fontWeight: active
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                           fontSize: 14,
                         ),
                       ),
@@ -388,7 +407,7 @@ class _MainLayoutState extends State<MainLayout> {
         border: Border(bottom: BorderSide(color: _topBarBorder)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -406,14 +425,18 @@ class _MainLayoutState extends State<MainLayout> {
               letterSpacing: -0.3,
             ),
           ),
-          
+
           Theme(
             data: Theme.of(context).copyWith(
               popupMenuTheme: PopupMenuThemeData(
                 color: _isDarkMode ? AppTheme.darkSurface : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: _isDarkMode ? AppTheme.darkBorder : Colors.grey.shade200),
+                  side: BorderSide(
+                    color: _isDarkMode
+                        ? AppTheme.darkBorder
+                        : Colors.grey.shade200,
+                  ),
                 ),
               ),
             ),
@@ -428,39 +451,42 @@ class _MainLayoutState extends State<MainLayout> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Logging out...')),
                   );
-                  
+
                   await Future.delayed(const Duration(milliseconds: 500));
-                  
+
                   if (!mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (route) => false, 
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                    (route) => false,
                   );
-                  
                 } else if (value == 'profile') {
                   _showProfileDialog();
                 }
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                 PopupMenuItem<String>(
-                  enabled: false, 
+                  enabled: false,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ---> NEW: Using the dynamic state variables here! <---
                       Text(
-                        _adminName, 
+                        _adminName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: _isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                       Text(
-                        _adminEmail, 
+                        _adminEmail,
                         style: TextStyle(
                           fontSize: 12,
-                          color: _isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          color: _isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -468,25 +494,44 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
                 const PopupMenuDivider(),
-                
+
                 PopupMenuItem<String>(
                   value: 'profile',
                   child: Row(
                     children: [
-                      Icon(Icons.person_outline, size: 20, color: _isDarkMode ? Colors.white70 : Colors.black87),
+                      Icon(
+                        Icons.person_outline,
+                        size: 20,
+                        color: _isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
                       const SizedBox(width: 12),
-                      Text('My Profile', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black87)),
+                      Text(
+                        'My Profile',
+                        style: TextStyle(
+                          color: _isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                
+
                 PopupMenuItem<String>(
                   value: 'logout',
                   child: Row(
                     children: [
-                      const Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                      const Icon(
+                        Icons.logout,
+                        size: 20,
+                        color: Colors.redAccent,
+                      ),
                       const SizedBox(width: 12),
-                      const Text('Log Out', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Log Out',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -494,7 +539,7 @@ class _MainLayoutState extends State<MainLayout> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const CircleAvatar(
@@ -518,8 +563,8 @@ class _MainLayoutState extends State<MainLayout> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              _sidebarColor.withOpacity(0.95),
-              _sidebarColor.withOpacity(0.85),
+              _sidebarColor.withValues(alpha: 0.95),
+              _sidebarColor.withValues(alpha: 0.85),
             ],
           ),
         ),
@@ -530,15 +575,20 @@ class _MainLayoutState extends State<MainLayout> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset('assets/images/whitelogo.png',
-                        height: 36, width: 36, fit: BoxFit.contain),
+                    Image.asset(
+                      'assets/images/whitelogo.png',
+                      height: 36,
+                      width: 36,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(width: 10),
                     const Text(
                       "iSpeak Admin",
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -551,10 +601,13 @@ class _MainLayoutState extends State<MainLayout> {
             const Spacer(),
             ListTile(
               leading: Icon(
-                  _isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                  color: Colors.white70),
-              title: Text(_isDarkMode ? "Light Mode" : "Dark Mode",
-                  style: const TextStyle(color: Colors.white70)),
+                _isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                color: Colors.white70,
+              ),
+              title: Text(
+                _isDarkMode ? "Light Mode" : "Dark Mode",
+                style: const TextStyle(color: Colors.white70),
+              ),
               onTap: () => setState(() => _isDarkMode = !_isDarkMode),
             ),
             const SizedBox(height: 20),

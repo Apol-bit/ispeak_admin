@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 
 class UsersScreen extends StatefulWidget {
@@ -13,11 +13,11 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   bool _isLoading = false;
-  
+
   // --- NEW: Split the lists and add a toggle state ---
   List<dynamic> _activeUsers = [];
   List<dynamic> _archivedUsers = [];
-  bool _showingArchived = false; 
+  bool _showingArchived = false;
 
   @override
   void initState() {
@@ -38,20 +38,23 @@ class _UsersScreenState extends State<UsersScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/users'));
+      final response = await ApiClient.get(
+        Uri.parse('${ApiConfig.baseUrl}/users'),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           // --- NEW: Save both lists into state ---
-          _activeUsers = data['activeUsers'] ?? []; 
+          _activeUsers = data['activeUsers'] ?? [];
           _archivedUsers = data['archivedUsers'] ?? [];
         });
       }
     } catch (e) {
       debugPrint("Error fetching users: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -65,12 +68,15 @@ class _UsersScreenState extends State<UsersScreen> {
 
     if (confirm) {
       try {
-        final response = await http.put(Uri.parse('${ApiConfig.baseUrl}/users/$id/archive'));
+        final response = await ApiClient.put(
+          Uri.parse('${ApiConfig.baseUrl}/users/$id/archive'),
+        );
+        if (!mounted) return;
         if (response.statusCode == 200) {
-          _fetchUsers(); 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("User safely archived"))
-          );
+          _fetchUsers();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("User safely archived")));
         }
       } catch (e) {
         debugPrint("Error archiving user: $e");
@@ -89,11 +95,14 @@ class _UsersScreenState extends State<UsersScreen> {
 
     if (confirm) {
       try {
-        final response = await http.put(Uri.parse('${ApiConfig.baseUrl}/users/$id/unarchive'));
+        final response = await ApiClient.put(
+          Uri.parse('${ApiConfig.baseUrl}/users/$id/unarchive'),
+        );
+        if (!mounted) return;
         if (response.statusCode == 200) {
-          _fetchUsers(); 
+          _fetchUsers();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("User successfully restored!"))
+            const SnackBar(content: Text("User successfully restored!")),
           );
         }
       } catch (e) {
@@ -104,11 +113,17 @@ class _UsersScreenState extends State<UsersScreen> {
 
   Future<void> _toggleUserStatus(String userId) async {
     try {
-      final response = await http.patch(Uri.parse('${ApiConfig.baseUrl}/users/$userId/status'));
+      final response = await ApiClient.patch(
+        Uri.parse('${ApiConfig.baseUrl}/users/$userId/status'),
+      );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         _fetchUsers(); // Refresh to ensure sync
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account status updated"), duration: Duration(seconds: 1)),
+          const SnackBar(
+            content: Text("Account status updated"),
+            duration: Duration(seconds: 1),
+          ),
         );
       }
     } catch (e) {
@@ -116,21 +131,36 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
-  Future<bool> _showConfirmDialog(String title, String content, String confirmText, Color confirmColor) async {
+  Future<bool> _showConfirmDialog(
+    String title,
+    String content,
+    String confirmText,
+    Color confirmColor,
+  ) async {
     return await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(title),
             content: Text(content),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Cancel"),
+              ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(confirmText, style: TextStyle(color: confirmColor, fontWeight: FontWeight.bold)),
+                child: Text(
+                  confirmText,
+                  style: TextStyle(
+                    color: confirmColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-        ) ?? false;
+        ) ??
+        false;
   }
 
   String _formatDate(String? isoDate) {
@@ -174,14 +204,18 @@ class _UsersScreenState extends State<UsersScreen> {
                     });
                   },
                   icon: Icon(
-                    _showingArchived ? Icons.people : Icons.archive, 
-                    color: _showingArchived ? AppTheme.primaryColor : Colors.orange,
+                    _showingArchived ? Icons.people : Icons.archive,
+                    color: _showingArchived
+                        ? AppTheme.primaryColor
+                        : Colors.orange,
                     size: 18,
                   ),
                   label: Text(
                     _showingArchived ? "View Active Users" : "View Archive",
                     style: TextStyle(
-                      color: _showingArchived ? AppTheme.primaryColor : Colors.orange,
+                      color: _showingArchived
+                          ? AppTheme.primaryColor
+                          : Colors.orange,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -194,7 +228,9 @@ class _UsersScreenState extends State<UsersScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
@@ -211,169 +247,260 @@ class _UsersScreenState extends State<UsersScreen> {
               border: Border.all(color: theme.borderColor),
             ),
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryColor,
+                    ),
+                  )
                 : displayList.isEmpty
-                    ? Center(
-                        child: Text(
-                          _showingArchived ? "No archived users found." : "No active users found.",
-                          style: TextStyle(color: theme.subtleTextColor),
-                        ),
-                      )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                                  child: Theme(
-                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                    child: DataTable(
-                                      headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
-                                      headingTextStyle: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.headingColor,
+                ? Center(
+                    child: Text(
+                      _showingArchived
+                          ? "No archived users found."
+                          : "No active users found.",
+                      style: TextStyle(color: theme.subtleTextColor),
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth,
+                              ),
+                              child: Theme(
+                                data: Theme.of(
+                                  context,
+                                ).copyWith(dividerColor: Colors.transparent),
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(
+                                    theme.scaffoldColor,
+                                  ),
+                                  headingTextStyle: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.headingColor,
+                                  ),
+                                  columnSpacing: 32.0,
+                                  horizontalMargin: 24.0,
+                                  dataRowMaxHeight: 70.0,
+                                  columns: const [
+                                    DataColumn(
+                                      label: Expanded(
+                                        child: Text('User Profile'),
                                       ),
-                                      columnSpacing: 32.0,
-                                      horizontalMargin: 24.0,
-                                      dataRowMaxHeight: 70.0,
-                                      columns: const [
-                                        DataColumn(label: Expanded(child: Text('User Profile'))),
-                                        DataColumn(label: Expanded(child: Text('Email Address'))),
-                                        DataColumn(label: Text('Date Joined')),
-                                        DataColumn(label: Text('Status')),
-                                        DataColumn(label: Text('Access')),
-                                        DataColumn(label: Text('Actions')),
-                                      ],
-                                      rows: displayList.map((user) {
-                                        String fName = user['firstName'] ?? '';
-                                        String lName = user['lastName'] ?? '';
-                                        String uName = user['username'] ?? 'Unknown';
+                                    ),
+                                    DataColumn(
+                                      label: Expanded(
+                                        child: Text('Email Address'),
+                                      ),
+                                    ),
+                                    DataColumn(label: Text('Date Joined')),
+                                    DataColumn(label: Text('Status')),
+                                    DataColumn(label: Text('Access')),
+                                    DataColumn(label: Text('Actions')),
+                                  ],
+                                  rows: displayList.map((user) {
+                                    String fName = user['firstName'] ?? '';
+                                    String lName = user['lastName'] ?? '';
+                                    String uName =
+                                        user['username'] ?? 'Unknown';
 
-                                        String fullName = (fName.isEmpty && lName.isEmpty)
-                                            ? uName
-                                            : '$fName $lName'.trim();
+                                    String fullName =
+                                        (fName.isEmpty && lName.isEmpty)
+                                        ? uName
+                                        : '$fName $lName'.trim();
 
-                                        String initials = _getInitials(fName, lName, uName);
-                                        bool isBanned = user['status'] == 'Banned';
+                                    String initials = _getInitials(
+                                      fName,
+                                      lName,
+                                      uName,
+                                    );
+                                    bool isBanned = user['status'] == 'Banned';
 
-                                        return DataRow(
-                                          color: WidgetStateProperty.resolveWith<Color?>((states) {
-                                            return isDark ? AppTheme.darkSurface : theme.cardColor;
+                                    return DataRow(
+                                      color:
+                                          WidgetStateProperty.resolveWith<
+                                            Color?
+                                          >((states) {
+                                            return isDark
+                                                ? AppTheme.darkSurface
+                                                : theme.cardColor;
                                           }),
-                                          cells: [
-                                            DataCell(
-                                              Row(
-                                                children: [
-                                                  CircleAvatar(
-                                                    radius: 18,
-                                                    backgroundColor: _showingArchived ? Colors.grey.withOpacity(0.2) : AppTheme.primaryColor.withOpacity(0.1),
-                                                    child: Text(
-                                                      initials,
-                                                      style: TextStyle(
-                                                        color: _showingArchived ? Colors.grey : AppTheme.primaryColor,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        fullName,
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.w600,
-                                                          color: theme.bodyTextColor,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        '@$uName',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.grey[500],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            DataCell(Text(
-                                              user['email'] ?? 'No Email',
-                                              style: TextStyle(color: theme.bodyTextColor),
-                                            )),
-                                            DataCell(Text(
-                                              _formatDate(user['createdAt']),
-                                              style: TextStyle(color: theme.subtleTextColor),
-                                            )),
-                                            DataCell(
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: _showingArchived 
-                                                      ? Colors.orange.withOpacity(0.15)
-                                                      : isBanned
-                                                          ? Colors.red.withOpacity(0.15)
-                                                          : Colors.green.withOpacity(0.15),
-                                                  borderRadius: BorderRadius.circular(20),
-                                                ),
+                                      cells: [
+                                        DataCell(
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 18,
+                                                backgroundColor:
+                                                    _showingArchived
+                                                    ? Colors.grey.withValues(
+                                                        alpha: 0.2,
+                                                      )
+                                                    : AppTheme.primaryColor
+                                                          .withValues(
+                                                            alpha: 0.1,
+                                                          ),
                                                 child: Text(
-                                                  _showingArchived ? 'Archived' : (user['status'] ?? 'Active'),
+                                                  initials,
                                                   style: TextStyle(
                                                     color: _showingArchived
-                                                        ? Colors.orange.shade400
-                                                        : isBanned
-                                                            ? Colors.red.shade400
-                                                            : Colors.green.shade400,
+                                                        ? Colors.grey
+                                                        : AppTheme.primaryColor,
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 12,
                                                   ),
                                                 ),
                                               ),
+                                              const SizedBox(width: 12),
+                                              Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    fullName,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          theme.bodyTextColor,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '@$uName',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            user['email'] ?? 'No Email',
+                                            style: TextStyle(
+                                              color: theme.bodyTextColor,
                                             ),
-                                            DataCell(
-                                              Switch(
-                                                value: !isBanned,
-                                                activeColor: Colors.green,
-                                                onChanged: _showingArchived ? null : (value) => _toggleUserStatus(user['_id']),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            _formatDate(user['createdAt']),
+                                            style: TextStyle(
+                                              color: theme.subtleTextColor,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _showingArchived
+                                                  ? Colors.orange.withValues(
+                                                      alpha: 0.15,
+                                                    )
+                                                  : isBanned
+                                                  ? Colors.red.withValues(
+                                                      alpha: 0.15,
+                                                    )
+                                                  : Colors.green.withValues(
+                                                      alpha: 0.15,
+                                                    ),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              _showingArchived
+                                                  ? 'Archived'
+                                                  : (user['status'] ??
+                                                        'Active'),
+                                              style: TextStyle(
+                                                color: _showingArchived
+                                                    ? Colors.orange.shade400
+                                                    : isBanned
+                                                    ? Colors.red.shade400
+                                                    : Colors.green.shade400,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
                                               ),
                                             ),
-                                            DataCell(
-                                              _showingArchived
-                                                  ? IconButton(
-                                                      icon: const Icon(Icons.unarchive, color: Colors.green, size: 22),
-                                                      tooltip: 'Restore User',
-                                                      hoverColor: Colors.green.withOpacity(0.08),
-                                                      highlightColor: Colors.green.withOpacity(0.15),
-                                                      splashColor: Colors.green.withOpacity(0.12),
-                                                      onPressed: () => _unarchiveUser(user['_id'], uName),
-                                                    )
-                                                  : IconButton(
-                                                      icon: const Icon(Icons.archive_outlined, color: Colors.orange, size: 22),
-                                                      tooltip: 'Archive User',
-                                                      hoverColor: Colors.orange.withOpacity(0.08),
-                                                      highlightColor: Colors.orange.withOpacity(0.15),
-                                                      splashColor: Colors.orange.withOpacity(0.12),
-                                                      onPressed: () => _archiveUser(user['_id'], uName),
-                                                    ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Switch(
+                                            value: !isBanned,
+                                            activeThumbColor: Colors.green,
+                                            onChanged: _showingArchived
+                                                ? null
+                                                : (value) => _toggleUserStatus(
+                                                    user['_id'],
+                                                  ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          _showingArchived
+                                              ? IconButton(
+                                                  icon: const Icon(
+                                                    Icons.unarchive,
+                                                    color: Colors.green,
+                                                    size: 22,
+                                                  ),
+                                                  tooltip: 'Restore User',
+                                                  hoverColor: Colors.green
+                                                      .withValues(alpha: 0.08),
+                                                  highlightColor: Colors.green
+                                                      .withValues(alpha: 0.15),
+                                                  splashColor: Colors.green
+                                                      .withValues(alpha: 0.12),
+                                                  onPressed: () =>
+                                                      _unarchiveUser(
+                                                        user['_id'],
+                                                        uName,
+                                                      ),
+                                                )
+                                              : IconButton(
+                                                  icon: const Icon(
+                                                    Icons.archive_outlined,
+                                                    color: Colors.orange,
+                                                    size: 22,
+                                                  ),
+                                                  tooltip: 'Archive User',
+                                                  hoverColor: Colors.orange
+                                                      .withValues(alpha: 0.08),
+                                                  highlightColor: Colors.orange
+                                                      .withValues(alpha: 0.15),
+                                                  splashColor: Colors.orange
+                                                      .withValues(alpha: 0.12),
+                                                  onPressed: () => _archiveUser(
+                                                    user['_id'],
+                                                    uName,
+                                                  ),
+                                                ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
       ],

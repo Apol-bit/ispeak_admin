@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import 'create_resource_screen.dart';
 
@@ -9,7 +9,7 @@ class ResourcesScreen extends StatefulWidget {
   const ResourcesScreen({super.key});
 
   @override
-  _ResourcesScreenState createState() => _ResourcesScreenState();
+  State<ResourcesScreen> createState() => _ResourcesScreenState();
 }
 
 class _ResourcesScreenState extends State<ResourcesScreen> {
@@ -23,51 +23,68 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
   void _fetchResources() {
     setState(() {
-      _resourcesFuture = http
-          .get(Uri.parse('${ApiConfig.baseUrl}/resources'))
-          .then((response) {
-        if (response.statusCode == 200) {
-          return json.decode(response.body);
-        } else {
-          throw Exception('Failed to load resources');
-        }
-      });
+      _resourcesFuture =
+          ApiClient.get(Uri.parse('${ApiConfig.baseUrl}/resources')).then((
+            response,
+          ) {
+            if (response.statusCode == 200) {
+              return json.decode(response.body);
+            } else {
+              throw Exception('Failed to load resources');
+            }
+          });
     });
   }
 
   Future<void> _deleteResource(String id) async {
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Resource?'),
-        content: const Text('Are you sure you want to delete this permanently?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+    bool confirm =
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Resource?'),
+            content: const Text(
+              'Are you sure you want to delete this permanently?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
+    if (!mounted) return;
     if (!confirm) return;
 
     try {
-      final response = await http.delete(
+      final response = await ApiClient.delete(
         Uri.parse('${ApiConfig.baseUrl}/admin/resources/$id'),
       );
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Resource deleted!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Resource deleted!'),
+            backgroundColor: Colors.green,
+          ),
         );
         _fetchResources();
       } else {
         throw Exception('Failed to delete');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -108,19 +125,25 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Container(
-                            width: 700,
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxWidth: 700),
                             height: MediaQuery.of(context).size.height * 0.85,
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 IconButton(
-                                  icon: Icon(Icons.close, color: theme.headingColor),
+                                  icon: Icon(
+                                    Icons.close,
+                                    color: theme.headingColor,
+                                  ),
                                   onPressed: () => Navigator.pop(themeContext),
                                 ),
                                 const Expanded(
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                    ),
                                     child: CreateResourceScreen(),
                                   ),
                                 ),
@@ -134,10 +157,16 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                 ).then((_) => _fetchResources());
               },
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text("Add New", style: TextStyle(color: Colors.white)),
+              label: const Text(
+                "Add New",
+                style: TextStyle(color: Colors.white),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -161,9 +190,19 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}", style: TextStyle(color: theme.bodyTextColor)));
+                  return Center(
+                    child: Text(
+                      "Error: ${snapshot.error}",
+                      style: TextStyle(color: theme.bodyTextColor),
+                    ),
+                  );
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("No resources found. Click 'Add New' to start!", style: TextStyle(color: theme.subtleTextColor)));
+                  return Center(
+                    child: Text(
+                      "No resources found. Click 'Add New' to start!",
+                      style: TextStyle(color: theme.subtleTextColor),
+                    ),
+                  );
                 }
 
                 final resources = snapshot.data!;
@@ -181,107 +220,213 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                               minWidth: constraints.maxWidth,
                             ),
                             child: Theme(
-                              data: Theme.of(context).copyWith(
-                                dividerColor: Colors.transparent,
-                              ),
+                              data: Theme.of(
+                                context,
+                              ).copyWith(dividerColor: Colors.transparent),
                               child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(theme.scaffoldColor),
+                                headingRowColor: WidgetStateProperty.all(
+                                  theme.scaffoldColor,
+                                ),
                                 columnSpacing: 40,
                                 horizontalMargin: 24,
-                                headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.headingColor),
-                                dataTextStyle: TextStyle(color: theme.bodyTextColor),
+                                headingTextStyle: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.headingColor,
+                                ),
+                                dataTextStyle: TextStyle(
+                                  color: theme.bodyTextColor,
+                                ),
                                 columns: const [
-                                  DataColumn(label: Expanded(child: Text('Type'))),
-                                  DataColumn(label: Expanded(child: Text('Title'))),
-                                  DataColumn(label: Expanded(child: Text('Difficulty'))),
-                                  DataColumn(label: Expanded(child: Text('Language'))),
+                                  DataColumn(
+                                    label: Expanded(child: Text('Type')),
+                                  ),
+                                  DataColumn(
+                                    label: Expanded(child: Text('Title')),
+                                  ),
+                                  DataColumn(
+                                    label: Expanded(child: Text('Difficulty')),
+                                  ),
+                                  DataColumn(
+                                    label: Expanded(child: Text('Language')),
+                                  ),
                                   DataColumn(label: Text('Actions')),
                                 ],
                                 rows: resources.map((item) {
                                   return DataRow(
-                                    color: WidgetStateProperty.resolveWith<Color?>((states) => theme.cardColor),
+                                    color:
+                                        WidgetStateProperty.resolveWith<Color?>(
+                                          (states) => theme.cardColor,
+                                        ),
                                     cells: [
-                                      DataCell(Chip(
-                                        label: Text(item['type'] ?? 'N/A', style: const TextStyle(fontSize: 12)),
-                                        visualDensity: VisualDensity.compact,
-                                        backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                                        side: BorderSide.none,
-                                      )),
-                                      DataCell(Text(item['title'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.w500))),
-                                      DataCell(Text(item['difficulty'] ?? 'N/A')),
+                                      DataCell(
+                                        Chip(
+                                          label: Text(
+                                            item['type'] ?? 'N/A',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                          backgroundColor: AppTheme.primaryColor
+                                              .withValues(alpha: 0.1),
+                                          side: BorderSide.none,
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          item['title'] ?? 'N/A',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(item['difficulty'] ?? 'N/A'),
+                                      ),
                                       DataCell(Text(item['language'] ?? 'N/A')),
-                                      DataCell(Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
-                                            hoverColor: Colors.blue.withOpacity(0.08),
-                                            highlightColor: Colors.blue.withOpacity(0.15),
-                                            splashColor: Colors.blue.withOpacity(0.12),
-                                            onPressed: () {
-                                              final isDark = ThemeProvider.of(context)!.isDarkMode;
-                                              showDialog(
-                                                context: context,
-                                                builder: (dialogContext) => ThemeProvider(
-                                                  isDarkMode: isDark,
-                                                  child: Builder(
-                                                    builder: (themeContext) {
-                                                      final theme = ThemeProvider.of(themeContext)!;
-                                                      return Dialog(
-                                                        backgroundColor: theme.scaffoldColor,
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(16),
-                                                        ),
-                                                        child: Container(
-                                                          width: 700,
-                                                          height: MediaQuery.of(context).size.height * 0.85,
-                                                          padding: const EdgeInsets.all(16),
-                                                          child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                                            children: [
-                                                              IconButton(
-                                                                icon: Icon(Icons.close, color: theme.headingColor),
-                                                                hoverColor: theme.headingColor.withOpacity(0.08),
-                                                                highlightColor: theme.headingColor.withOpacity(0.15),
-                                                                splashColor: theme.headingColor.withOpacity(0.12),
-                                                                onPressed: () => Navigator.pop(themeContext),
-                                                              ),
-                                                              Expanded(
-                                                                child: Padding(
-                                                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                                                  child: CreateResourceScreen(resource: item),
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                                color: Colors.blue,
+                                                size: 20,
+                                              ),
+                                              hoverColor: Colors.blue
+                                                  .withValues(alpha: 0.08),
+                                              highlightColor: Colors.blue
+                                                  .withValues(alpha: 0.15),
+                                              splashColor: Colors.blue
+                                                  .withValues(alpha: 0.12),
+                                              onPressed: () {
+                                                final isDark = ThemeProvider.of(
+                                                  context,
+                                                )!.isDarkMode;
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (dialogContext) => ThemeProvider(
+                                                    isDarkMode: isDark,
+                                                    child: Builder(
+                                                      builder: (themeContext) {
+                                                        final theme =
+                                                            ThemeProvider.of(
+                                                              themeContext,
+                                                            )!;
+                                                        return Dialog(
+                                                          backgroundColor: theme
+                                                              .scaffoldColor,
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  16,
                                                                 ),
-                                                              ),
-                                                            ],
                                                           ),
-                                                        ),
-                                                      );
-                                                    },
+                                                          child: Container(
+                                                            width:
+                                                                double.infinity,
+                                                            constraints:
+                                                                const BoxConstraints(
+                                                                  maxWidth: 700,
+                                                                ),
+                                                            height:
+                                                                MediaQuery.of(
+                                                                  context,
+                                                                ).size.height *
+                                                                0.85,
+                                                            padding:
+                                                                const EdgeInsets.all(
+                                                                  16,
+                                                                ),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .end,
+                                                              children: [
+                                                                IconButton(
+                                                                  icon: Icon(
+                                                                    Icons.close,
+                                                                    color: theme
+                                                                        .headingColor,
+                                                                  ),
+                                                                  hoverColor: theme
+                                                                      .headingColor
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.08,
+                                                                      ),
+                                                                  highlightColor: theme
+                                                                      .headingColor
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.15,
+                                                                      ),
+                                                                  splashColor: theme
+                                                                      .headingColor
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.12,
+                                                                      ),
+                                                                  onPressed: () =>
+                                                                      Navigator.pop(
+                                                                        themeContext,
+                                                                      ),
+                                                                ),
+                                                                Expanded(
+                                                                  child: Padding(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          16.0,
+                                                                    ),
+                                                                    child: CreateResourceScreen(
+                                                                      resource:
+                                                                          item,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
                                                   ),
-                                                ),
-                                              ).then((_) => _fetchResources());
-                                            },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                            hoverColor: Colors.red.withOpacity(0.08),
-                                            highlightColor: Colors.red.withOpacity(0.15),
-                                            splashColor: Colors.red.withOpacity(0.12),
-                                            onPressed: () => _deleteResource(item['_id']),
-                                          ),
-                                        ],
-                                      )),
+                                                ).then(
+                                                  (_) => _fetchResources(),
+                                                );
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.red,
+                                                size: 20,
+                                              ),
+                                              hoverColor: Colors.red.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              highlightColor: Colors.red
+                                                  .withValues(alpha: 0.15),
+                                              splashColor: Colors.red
+                                                  .withValues(alpha: 0.12),
+                                              onPressed: () =>
+                                                  _deleteResource(item['_id']),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ],
                                   );
                                 }).toList(),
-                              ),      
-                            ),        
-                          ),          
-                        ),            
-                      ),              
-                    );                
-                  },                  
-                );                    
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),
