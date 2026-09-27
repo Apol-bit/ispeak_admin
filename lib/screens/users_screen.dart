@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loading_skeleton.dart';
+import '../widgets/load_error.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -13,6 +15,7 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   bool _isLoading = false;
+  String? _loadError;
 
   // --- NEW: Split the lists and add a toggle state ---
   List<dynamic> _activeUsers = [];
@@ -36,7 +39,10 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Future<void> _fetchUsers() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
     try {
       final response = await ApiClient.get(
         Uri.parse('${ApiConfig.baseUrl}/users'),
@@ -50,8 +56,13 @@ class _UsersScreenState extends State<UsersScreen> {
           _activeUsers = data['activeUsers'] ?? [];
           _archivedUsers = data['archivedUsers'] ?? [];
         });
+      } else {
+        throw StateError('Request failed');
       }
     } catch (e) {
+      if (mounted) {
+        setState(() => _loadError = 'Unable to load data. Please try again.');
+      }
       debugPrint("Error fetching users: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -184,8 +195,11 @@ class _UsersScreenState extends State<UsersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 12,
           children: [
             Text(
               _showingArchived ? "Archived Users" : "Manage Users",
@@ -246,12 +260,12 @@ class _UsersScreenState extends State<UsersScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: theme.borderColor),
             ),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryColor,
-                    ),
+            child: _isLoading && _activeUsers.isEmpty && _archivedUsers.isEmpty
+                ? const SingleChildScrollView(
+                    child: SkeletonList(table: true, count: 6),
                   )
+                : _loadError != null
+                ? LoadError(message: _loadError!, onRetry: _fetchUsers)
                 : displayList.isEmpty
                 ? Center(
                     child: Text(

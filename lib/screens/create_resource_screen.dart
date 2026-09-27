@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../widgets/resource_icon_picker.dart';
 
 class CreateResourceScreen extends StatefulWidget {
   final Map<String, dynamic>?
@@ -260,19 +261,27 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   DropdownButtonFormField<String>(
+                    key: const ValueKey('resource-type'),
+                    isExpanded: true,
                     initialValue: _type,
                     decoration: inputStyle('Resource Type'),
                     dropdownColor: theme.cardColor,
-                    style: TextStyle(color: theme.bodyTextColor),
+                    style: TextStyle(
+                      color: theme.bodyTextColor,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
                     items: ['Script', 'Challenge', 'GuidedTask'].map((
                       String value,
                     ) {
                       return DropdownMenuItem<String>(
                         value: value,
-                        child: Text(value),
+                        child: Text(
+                          value == 'GuidedTask' ? 'Guided Task' : value,
+                        ),
                       );
                     }).toList(),
                     onChanged: (newValue) => setState(() {
+                      _formKey.currentState?.save();
                       _type = newValue!;
                       if (_type != 'GuidedTask' && _language == 'None') {
                         _language = 'English';
@@ -283,7 +292,10 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
                   TextFormField(
                     initialValue: _title,
-                    style: TextStyle(color: theme.bodyTextColor),
+                    style: TextStyle(
+                      color: theme.bodyTextColor,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
                     decoration: inputStyle('Title (e.g., Quick Pitch)'),
                     validator: (value) => value!.isEmpty ? 'Required' : null,
                     onSaved: (value) => _title = value!,
@@ -292,199 +304,241 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
 
                   TextFormField(
                     initialValue: _description,
-                    style: TextStyle(color: theme.bodyTextColor),
+                    style: TextStyle(
+                      color: theme.bodyTextColor,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
                     decoration: inputStyle('Short Description'),
                     validator: (value) => value!.isEmpty ? 'Required' : null,
                     onSaved: (value) => _description = value!,
                   ),
                   const SizedBox(height: 20),
 
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _difficulty,
-                          decoration: inputStyle('Difficulty'),
-                          dropdownColor: theme.cardColor,
-                          style: TextStyle(color: theme.bodyTextColor),
-                          items:
-                              [
-                                'Beginner',
-                                'Intermediate',
-                                'Advanced',
-                                'None',
-                              ].map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                          onChanged: (newValue) =>
-                              setState(() => _difficulty = newValue!),
+                  if (_type == 'GuidedTask') ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: .08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Open to all levels — no difficulty gate',
+                        style: TextStyle(
+                          color: theme.bodyTextColor,
+                          fontFamily: AppTheme.fontFamily,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _language,
-                          decoration: inputStyle('Language'),
-                          dropdownColor: theme.cardColor,
-                          style: TextStyle(color: theme.bodyTextColor),
-                          items:
-                              [
-                                'English',
-                                'Filipino',
-                                'Taglish',
-                                if (_type == 'GuidedTask') 'None',
-                              ].map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                          onChanged: (newValue) =>
-                              setState(() => _language = newValue!),
-                        ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _ResourceFieldPair(
+                    first: _type != 'GuidedTask'
+                        ? DropdownButtonFormField<String>(
+                            key: const ValueKey('resource-difficulty'),
+                            isExpanded: true,
+                            initialValue: _difficulty,
+                            decoration: inputStyle('Difficulty'),
+                            dropdownColor: theme.cardColor,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            items:
+                                [
+                                  'Beginner',
+                                  'Intermediate',
+                                  'Advanced',
+                                  'None',
+                                ].map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                            onChanged: (newValue) =>
+                                setState(() => _difficulty = newValue!),
+                          )
+                        : null,
+                    second: DropdownButtonFormField<String>(
+                      key: ValueKey('resource-language-$_type'),
+                      isExpanded: true,
+                      initialValue: _language,
+                      decoration: inputStyle('Language'),
+                      dropdownColor: theme.cardColor,
+                      style: TextStyle(
+                        color: theme.bodyTextColor,
+                        fontFamily: AppTheme.fontFamily,
                       ),
-                    ],
+                      items:
+                          [
+                            'English',
+                            'Filipino',
+                            'Taglish',
+                            if (_type == 'GuidedTask') 'None',
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                      onChanged: (newValue) =>
+                          setState(() => _language = newValue!),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Divider(color: theme.borderColor),
                   const SizedBox(height: 24),
 
-                  if (_type == 'Script') ...[
-                    TextFormField(
-                      initialValue: _estimatedMinutes.toString(),
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle('Estimated Time (Minutes)'),
-                      keyboardType: TextInputType.number,
-                      onSaved: (value) =>
-                          _estimatedMinutes = int.tryParse(value ?? '2') ?? 2,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _transcript,
-                      maxLength: 5000,
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration:
-                          inputStyle(
-                            'Transcript (The text the user will read)',
-                          ).copyWith(
-                            alignLabelWithHint: true,
-                            helperText:
-                                'This is the script text shown to users during practice',
-                            helperStyle: TextStyle(
-                              color: theme.subtleTextColor,
-                              fontSize: 11,
-                            ),
-                          ),
-                      maxLines: 10,
-                      onSaved: (value) => _transcript = value ?? '',
-                    ),
-                  ],
-
-                  if (_type == 'Challenge') ...[
-                    Row(
+                  KeyedSubtree(
+                    key: ValueKey('resource-fields-$_type'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: _timeLimitSeconds.toString(),
-                            style: TextStyle(color: theme.bodyTextColor),
-                            decoration: inputStyle('Time Limit (Seconds)'),
+                        if (_type == 'Script') ...[
+                          TextFormField(
+                            initialValue: _estimatedMinutes.toString(),
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle('Estimated Time (Minutes)'),
                             keyboardType: TextInputType.number,
-                            onSaved: (value) => _timeLimitSeconds =
-                                int.tryParse(value ?? '60') ?? 60,
+                            onSaved: (value) => _estimatedMinutes =
+                                int.tryParse(value ?? '2') ?? 2,
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: _targetMetric,
-                            style: TextStyle(color: theme.bodyTextColor),
-                            decoration: inputStyle(
-                              'Target Metric (e.g., 120-150 WPM)',
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _transcript,
+                            maxLength: 5000,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
                             ),
-                            onSaved: (value) => _targetMetric = value ?? '',
+                            decoration:
+                                inputStyle(
+                                  'Transcript (The text the user will read)',
+                                ).copyWith(
+                                  alignLabelWithHint: true,
+                                  helperText:
+                                      'This is the script text shown to users during practice',
+                                  helperStyle: TextStyle(
+                                    color: theme.subtleTextColor,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                            maxLines: 10,
+                            onSaved: (value) => _transcript = value ?? '',
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _prompt,
-                      maxLength: 5000,
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle('Prompt / Context'),
-                      maxLines: 3,
-                      onSaved: (value) => _prompt = value ?? '',
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _tipsRaw,
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle(
-                        'Tips (Press Enter for a new bullet point)',
-                      ),
-                      maxLines: 4,
-                      onSaved: (value) => _tipsRaw = value ?? '',
-                    ),
-                  ],
+                        ],
 
-                  if (_type == 'GuidedTask') ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: _category,
-                            style: TextStyle(color: theme.bodyTextColor),
-                            decoration: inputStyle(
-                              'Category (e.g., Foundation)',
+                        if (_type == 'Challenge') ...[
+                          _ResourceFieldPair(
+                            first: TextFormField(
+                              initialValue: _timeLimitSeconds.toString(),
+                              style: TextStyle(
+                                color: theme.bodyTextColor,
+                                fontFamily: AppTheme.fontFamily,
+                              ),
+                              decoration: inputStyle('Time Limit (Seconds)'),
+                              keyboardType: TextInputType.number,
+                              onSaved: (value) => _timeLimitSeconds =
+                                  int.tryParse(value ?? '60') ?? 60,
                             ),
-                            onSaved: (value) => _category = value ?? '',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: _iconName,
-                            style: TextStyle(color: theme.bodyTextColor),
-                            decoration: inputStyle(
-                              'Icon Name (e.g., volume_up)',
+                            second: TextFormField(
+                              initialValue: _targetMetric,
+                              style: TextStyle(
+                                color: theme.bodyTextColor,
+                                fontFamily: AppTheme.fontFamily,
+                              ),
+                              decoration: inputStyle('Target Metric'),
+                              onSaved: (value) => _targetMetric = value ?? '',
                             ),
-                            onSaved: (value) => _iconName = value ?? '',
                           ),
-                        ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _prompt,
+                            maxLength: 5000,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle('Prompt / Context'),
+                            maxLines: 3,
+                            onSaved: (value) => _prompt = value ?? '',
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _tipsRaw,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle(
+                              'Tips (Press Enter for a new bullet point)',
+                            ),
+                            maxLines: 4,
+                            onSaved: (value) => _tipsRaw = value ?? '',
+                          ),
+                        ],
+
+                        if (_type == 'GuidedTask') ...[
+                          _ResourceFieldPair(
+                            first: TextFormField(
+                              initialValue: _category,
+                              style: TextStyle(
+                                color: theme.bodyTextColor,
+                                fontFamily: AppTheme.fontFamily,
+                              ),
+                              decoration: inputStyle('Category'),
+                              onSaved: (value) => _category = value ?? '',
+                            ),
+                            second: ResourceIconPickerField(
+                              value: _iconName,
+                              onChanged: (value) =>
+                                  setState(() => _iconName = value),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _estimatedMinutes.toString(),
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle('Estimated Time (Minutes)'),
+                            keyboardType: TextInputType.number,
+                            onSaved: (value) => _estimatedMinutes =
+                                int.tryParse(value ?? '5') ?? 5,
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _stepsRaw,
+                            maxLength: 5000,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle(
+                              'Steps (Press Enter for a new numbered step)',
+                            ),
+                            maxLines: 6,
+                            onSaved: (value) => _stepsRaw = value ?? '',
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: _proTip,
+                            style: TextStyle(
+                              color: theme.bodyTextColor,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: inputStyle('Pro Tip'),
+                            maxLines: 2,
+                            onSaved: (value) => _proTip = value ?? '',
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _estimatedMinutes.toString(),
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle('Estimated Time (Minutes)'),
-                      keyboardType: TextInputType.number,
-                      onSaved: (value) =>
-                          _estimatedMinutes = int.tryParse(value ?? '5') ?? 5,
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _stepsRaw,
-                      maxLength: 5000,
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle(
-                        'Steps (Press Enter for a new numbered step)',
-                      ),
-                      maxLines: 6,
-                      onSaved: (value) => _stepsRaw = value ?? '',
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      initialValue: _proTip,
-                      style: TextStyle(color: theme.bodyTextColor),
-                      decoration: inputStyle('Pro Tip'),
-                      maxLines: 2,
-                      onSaved: (value) => _proTip = value ?? '',
-                    ),
-                  ],
+                  ),
 
                   if (_type != 'GuidedTask') ...[
                     const SizedBox(height: 24),
@@ -551,4 +605,30 @@ class _CreateResourceScreenState extends State<CreateResourceScreen> {
       ),
     );
   }
+}
+
+/// Keep paired controls usable when dialog insets reduce the available width.
+class _ResourceFieldPair extends StatelessWidget {
+  final Widget? first;
+  final Widget second;
+  const _ResourceFieldPair({this.first, required this.second});
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final fieldWidth = first == null || constraints.maxWidth < 480
+          ? constraints.maxWidth
+          : (constraints.maxWidth - 16) / 2;
+      // A stable child tree retains unsaved field state across window resizes.
+      return Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (first != null) SizedBox(width: fieldWidth, child: first!),
+          SizedBox(width: fieldWidth, child: second),
+        ],
+      );
+    },
+  );
 }

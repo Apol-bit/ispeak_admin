@@ -7,6 +7,7 @@ import 'session_reviews_screen.dart';
 import 'resources_screen.dart';
 import 'login_screen.dart';
 import 'profile_dialog.dart';
+import '../widgets/admin_nav_item.dart';
 
 class MainLayout extends StatefulWidget {
   // Added variables to receive the real admin data
@@ -70,8 +71,13 @@ class _MainLayoutState extends State<MainLayout> {
   static const double _collapsedWidth = 72;
   static const Duration _animDuration = Duration(milliseconds: 200);
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
+  void _selectPage(int index) => setState(() => _selectedIndex = index);
+
+  List<Widget> get _screens => [
+    DashboardScreen(
+      onUsers: () => _selectPage(1),
+      onReviews: () => _selectPage(2),
+    ),
     const UsersScreen(),
     const SessionReviewsScreen(),
     const ResourcesScreen(),
@@ -328,75 +334,14 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _navItem(IconData icon, String title, int index) {
-    final bool active = _selectedIndex == index;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () => setState(() => _selectedIndex = index),
-            child: AnimatedContainer(
-              duration: _animDuration,
-              height: 44,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              padding: EdgeInsets.symmetric(
-                horizontal: _isSidebarExpanded ? 12.0 : 6.0,
-              ),
-              decoration: BoxDecoration(
-                gradient: active
-                    ? LinearGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.25),
-                          Colors.white.withValues(alpha: 0.1),
-                        ],
-                      )
-                    : null,
-                borderRadius: BorderRadius.circular(16),
-                border: active
-                    ? Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1.5,
-                      )
-                    : null,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icon,
-                    color: active ? Colors.white : Colors.white70,
-                    size: 16,
-                  ),
-                  if (_isSidebarExpanded) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        title,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: active ? Colors.white : Colors.white70,
-                          fontWeight: active
-                              ? FontWeight.w600
-                              : FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _navItem(IconData icon, String title, int index) => AdminNavItem(
+    key: ValueKey('nav-$index'),
+    icon: icon,
+    label: title,
+    selected: _selectedIndex == index,
+    expanded: _isSidebarExpanded,
+    onTap: () => _selectPage(index),
+  );
 
   Widget _buildTopBar() {
     return Container(
@@ -617,14 +562,14 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _drawerItem(IconData icon, String title, int index) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white70),
-      title: Text(title, style: const TextStyle(color: Colors.white70)),
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        Navigator.pop(context);
-      },
-    );
-  }
+  Widget _drawerItem(IconData icon, String title, int index) => AdminNavItem(
+    key: ValueKey('nav-$index'),
+    icon: icon,
+    label: title,
+    selected: _selectedIndex == index,
+    onTap: () {
+      _selectPage(index);
+      Navigator.pop(context);
+    },
+  );
 }

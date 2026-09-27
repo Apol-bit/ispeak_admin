@@ -46,8 +46,12 @@ class ApiClient {
     http.MultipartRequest request,
   ) async {
     request.headers.addAll(await AuthService.authHeaders());
-    final streamed = await request.send().timeout(uploadTimeout);
-    return _handle(await http.Response.fromStream(streamed));
+    // Bound the complete exchange, including reading the response body.
+    final response = await (() async {
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    })().timeout(uploadTimeout);
+    return _handle(response);
   }
 
   static Future<http.Response> _handle(http.Response response) async {

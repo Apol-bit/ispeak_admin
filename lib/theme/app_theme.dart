@@ -1,6 +1,76 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  static const filterBlue = Color(0xFF3D6BFF);
+  static const lightFilterBorder = Color(0xFFE6E8EE);
+  static const lightFilterText = Color(0xFF5B6472);
+  static const darkAction = Color(0xFF93B4FF);
+  static const darkDestructive = Color(0xFFFF9B91);
+
+  static ThemeData materialTheme(bool dark) {
+    final brightness = dark ? Brightness.dark : Brightness.light;
+    final surface = dark ? darkSurface : Colors.white;
+    final text = dark ? darkTextPrimary : const Color(0xFF1B1F2A);
+    final muted = dark ? darkTextSecondary : lightFilterText;
+    final border = dark ? darkBorder : lightFilterBorder;
+    final action = dark ? darkAction : primaryColor;
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      fontFamily: fontFamily,
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: filterBlue,
+            brightness: brightness,
+          ).copyWith(
+            primary: action,
+            secondary: action,
+            surface: surface,
+            onSurface: text,
+            onSurfaceVariant: muted,
+            outline: border,
+            surfaceTint: Colors.transparent,
+          ),
+      scaffoldBackgroundColor: dark ? darkBackground : backgroundColor,
+      iconTheme: IconThemeData(color: muted),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: text,
+          fontFamily: fontFamily,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: TextStyle(
+          color: text,
+          fontFamily: fontFamily,
+          fontSize: 14,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: action),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surface,
+        hintStyle: TextStyle(color: muted),
+        helperStyle: TextStyle(color: muted),
+        labelStyle: TextStyle(color: muted),
+        prefixIconColor: muted,
+        suffixIconColor: muted,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: filterBlue, width: 2),
+        ),
+      ),
+    );
+  }
+
   // Primary colors
   static const Color primaryColor = Color(0xFF1D4ED8);
 
@@ -23,18 +93,35 @@ class AppTheme {
   static const String fontFamily = 'Inter';
 }
 
-class ThemeProvider extends InheritedWidget {
+class ThemeProvider extends StatelessWidget {
+  final Widget child;
   final bool isDarkMode;
 
   const ThemeProvider({
     super.key,
     required this.isDarkMode,
-    required super.child,
+    required this.child,
   });
 
   static ThemeProvider? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<ThemeProvider>();
+    return context
+        .dependOnInheritedWidgetOfExactType<_AdminThemeScope>()
+        ?.theme;
   }
+
+  Color get filterTextColor =>
+      isDarkMode ? const Color(0xFFCBD5E1) : AppTheme.lightFilterText;
+  Color get filterBorderColor =>
+      isDarkMode ? AppTheme.darkBorder : AppTheme.lightFilterBorder;
+  Color get actionColor =>
+      isDarkMode ? AppTheme.darkAction : AppTheme.primaryColor;
+  Color get destructiveColor =>
+      isDarkMode ? AppTheme.darkDestructive : Colors.red.shade700;
+  Color categoryColor(String type) => switch (type) {
+    'Challenge' => isDarkMode ? Colors.purple.shade200 : Colors.purple.shade700,
+    'GuidedTask' => isDarkMode ? Colors.blue.shade200 : AppTheme.primaryColor,
+    _ => isDarkMode ? Colors.green.shade200 : Colors.green.shade700,
+  };
 
   // Convenience color getters — use these in screens instead of raw ternaries
   Color get cardColor => isDarkMode ? AppTheme.darkSurface : Colors.white;
@@ -43,7 +130,7 @@ class ThemeProvider extends InheritedWidget {
   Color get bodyTextColor =>
       isDarkMode ? AppTheme.darkTextPrimary : Colors.black87;
   Color get subtleTextColor =>
-      isDarkMode ? AppTheme.darkTextSecondary : Colors.grey;
+      isDarkMode ? AppTheme.darkTextSecondary : AppTheme.lightFilterText;
   Color get headingColor =>
       isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
   Color get scaffoldColor =>
@@ -52,6 +139,16 @@ class ThemeProvider extends InheritedWidget {
       isDarkMode ? AppTheme.darkTextPrimary : Colors.black87;
 
   @override
-  bool updateShouldNotify(ThemeProvider oldWidget) =>
-      isDarkMode != oldWidget.isDarkMode;
+  Widget build(BuildContext context) => _AdminThemeScope(
+    theme: this,
+    child: Theme(data: AppTheme.materialTheme(isDarkMode), child: child),
+  );
+}
+
+class _AdminThemeScope extends InheritedWidget {
+  final ThemeProvider theme;
+  const _AdminThemeScope({required this.theme, required super.child});
+  @override
+  bool updateShouldNotify(_AdminThemeScope oldWidget) =>
+      theme.isDarkMode != oldWidget.theme.isDarkMode;
 }

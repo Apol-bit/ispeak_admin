@@ -3,6 +3,9 @@ import 'dart:convert';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loading_skeleton.dart';
+import '../widgets/load_error.dart';
+import '../widgets/session_review_dialog.dart';
 
 class SessionReviewsScreen extends StatefulWidget {
   const SessionReviewsScreen({super.key});
@@ -13,6 +16,7 @@ class SessionReviewsScreen extends StatefulWidget {
 
 class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
   bool _isLoading = false;
+  String? _loadError;
   List<dynamic> _sessionReviews = [];
 
   @override
@@ -23,7 +27,10 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
 
   // 1. Fetching the Session Data from your Node.js backend
   Future<void> _fetchSessionReviews() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
 
     try {
       final response = await ApiClient.get(
@@ -35,8 +42,13 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
         setState(() {
           _sessionReviews = jsonDecode(response.body);
         });
+      } else {
+        throw StateError('Request failed');
       }
     } catch (e) {
+      if (mounted) {
+        setState(() => _loadError = 'Unable to load data. Please try again.');
+      }
       debugPrint("Error fetching session reviews: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -55,248 +67,8 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     }
   }
 
-  // 3. Dynamic Modal to Inspect the Session Output
-  void _inspectSession(Map<String, dynamic> session) {
-    final theme = ThemeProvider.of(context)!;
-    final isDark = theme.isDarkMode;
-
-    String formatUserId(dynamic userIdData) {
-      if (userIdData == null) return "Unknown";
-      if (userIdData is Map) {
-        final firstName = userIdData['firstName'] ?? '';
-        final lastName = userIdData['lastName'] ?? '';
-        final email = userIdData['email'] ?? '';
-        final id = userIdData['_id'] ?? '';
-
-        final namePart = '$firstName $lastName'.trim();
-        if (namePart.isNotEmpty) {
-          return '$namePart ($email)\nID: $id';
-        } else if (email.isNotEmpty) {
-          return '$email\nID: $id';
-        } else {
-          return id.toString();
-        }
-      }
-      return userIdData.toString();
-    }
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => ThemeProvider(
-        isDarkMode: isDark,
-        child: Builder(
-          builder: (themeContext) {
-            final modalTheme = ThemeProvider.of(themeContext)!;
-            return Dialog(
-              backgroundColor: modalTheme.scaffoldColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxWidth: 600),
-                height: MediaQuery.of(context).size.height * 0.7,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Session Analysis Details",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: modalTheme.headingColor,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: modalTheme.headingColor,
-                          ),
-                          hoverColor: modalTheme.headingColor.withValues(
-                            alpha: 0.08,
-                          ),
-                          highlightColor: modalTheme.headingColor.withValues(
-                            alpha: 0.15,
-                          ),
-                          splashColor: modalTheme.headingColor.withValues(
-                            alpha: 0.12,
-                          ),
-                          onPressed: () => Navigator.pop(themeContext),
-                        ),
-                      ],
-                    ),
-                    Divider(color: modalTheme.borderColor),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildDetailSection(
-                              "Session ID",
-                              session['_id']?.toString() ?? 'Unknown',
-                              modalTheme,
-                            ),
-                            _buildDetailSection(
-                              "User ID",
-                              formatUserId(session['userId']),
-                              modalTheme,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildDetailSection(
-                              "Raw Transcription",
-                              session['transcription']?.toString() ??
-                                  'No transcription available.',
-                              modalTheme,
-                              isCode: true,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildDetailSection(
-                              "AI Feedback Summary",
-                              session['aiFeedback']?.toString() ??
-                                  'AI is still processing or failed to generate feedback.',
-                              modalTheme,
-                            ),
-
-                            // ---> THE CRASH FIX: Format the JSON beautifully <---
-                            Builder(
-                              builder: (context) {
-                                String feedbackDisplay;
-                                if (session['aiFeedback'] is Map) {
-                                  // If it's a JSON Object, format it with nice indents!
-                                  feedbackDisplay =
-                                      const JsonEncoder.withIndent(
-                                        '  ',
-                                      ).convert(session['aiFeedback']);
-                                } else {
-                                  // Fallback for older string-based records
-                                  feedbackDisplay =
-                                      session['aiFeedback']?.toString() ??
-                                      'AI is still processing...';
-                                }
-
-                                return _buildDetailSection(
-                                  "AI Feedback Details",
-                                  feedbackDisplay,
-                                  modalTheme,
-                                  isCode: true,
-                                );
-                              },
-                            ),
-
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _scoreBadge(
-                                  "Pace",
-                                  session['paceScore']?.toString() ?? '0',
-                                  Colors.blue,
-                                ),
-                                _scoreBadge(
-                                  "Clarity",
-                                  session['clarityScore']?.toString() ?? '0',
-                                  Colors.green,
-                                ),
-                                _scoreBadge(
-                                  "Energy",
-                                  session['energyScore']?.toString() ?? '0',
-                                  Colors.orange,
-                                ),
-                                _scoreBadge(
-                                  "Overall",
-                                  session['overallScore']?.toString() ?? '0',
-                                  AppTheme.primaryColor,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailSection(
-    String title,
-    String content,
-    dynamic theme, {
-    bool isCode = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: theme.headingColor,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: theme.borderColor),
-          ),
-          child: Text(
-            content,
-            style: TextStyle(
-              color: theme.bodyTextColor,
-              fontFamily: isCode ? 'monospace' : null,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _scoreBadge(String label, String score, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            score,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  void _inspectSession(Map<String, dynamic> session) =>
+      showSessionReview(context, session);
 
   @override
   Widget build(BuildContext context) {
@@ -306,8 +78,11 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 12,
           children: [
             Text(
               "Session Reviews",
@@ -342,12 +117,12 @@ class _SessionReviewsScreenState extends State<SessionReviewsScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: theme.borderColor),
             ),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryColor,
-                    ),
+            child: _isLoading && _sessionReviews.isEmpty
+                ? const SingleChildScrollView(
+                    child: SkeletonList(table: true, count: 6),
                   )
+                : _loadError != null
+                ? LoadError(message: _loadError!, onRetry: _fetchSessionReviews)
                 : _sessionReviews.isEmpty
                 ? Center(
                     child: Text(

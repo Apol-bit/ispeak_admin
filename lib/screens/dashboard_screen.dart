@@ -3,9 +3,15 @@ import 'dart:convert';
 import '../config/api_config.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loading_skeleton.dart';
+import '../widgets/load_error.dart';
+import '../widgets/summary_card.dart';
+import '../widgets/session_review_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onUsers;
+  final VoidCallback? onReviews;
+  const DashboardScreen({super.key, this.onUsers, this.onReviews});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -13,6 +19,9 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingStats = false;
+  bool _hasStats = false;
+  String? _statsError;
+  String? _sessionsError;
   bool _isLoadingSessions = false;
 
   int _totalUsers = 0;
@@ -42,7 +51,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchGlobalStats() async {
-    setState(() => _isLoadingStats = true);
+    setState(() {
+      _isLoadingStats = true;
+      _statsError = null;
+    });
     try {
       final url = '${ApiConfig.baseUrl}/admin/stats';
       final response = await ApiClient.get(Uri.parse(url));
@@ -51,12 +63,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final data = jsonDecode(response.body);
         if (!mounted) return;
         setState(() {
+          _hasStats = true;
           _totalUsers = data['totalUsers'] ?? 0;
           _totalSessions = data['totalSessions'] ?? 0;
           _avgAppScore = data['avgAppScore'] ?? 0;
         });
+      } else {
+        throw StateError('Request failed');
       }
     } catch (e) {
+      if (mounted) {
+        setState(() => _statsError = 'Unable to load data. Please try again.');
+      }
       debugPrint("Error fetching admin stats: $e");
     } finally {
       if (mounted) setState(() => _isLoadingStats = false);
@@ -64,7 +82,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchRecentSessions() async {
-    setState(() => _isLoadingSessions = true);
+    setState(() {
+      _isLoadingSessions = true;
+      _sessionsError = null;
+    });
 
     try {
       final response = await ApiClient.get(
@@ -76,8 +97,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _recentSessions = jsonDecode(response.body);
         });
+      } else {
+        throw StateError('Request failed');
       }
     } catch (e) {
+      if (mounted) {
+        setState(
+          () => _sessionsError = 'Unable to load data. Please try again.',
+        );
+      }
       debugPrint("Error fetching recent sessions: $e");
     } finally {
       if (mounted) setState(() => _isLoadingSessions = false);
@@ -100,70 +128,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final theme = ThemeProvider.of(context)!;
     final isDark = theme.isDarkMode;
 
-    if (_isLoadingStats) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryColor),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stat Cards
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cards = [
-                _buildStatCard(
-                  'Total Users',
-                  '$_totalUsers',
-                  Icons.people,
-                  AppTheme.primaryColor,
-                  isDark,
-                ),
-                _buildStatCard(
-                  'Total Sessions',
-                  '$_totalSessions',
-                  Icons.mic,
-                  Colors.green,
-                  isDark,
-                ),
-                _buildStatCard(
-                  'Avg App Score',
-                  '$_avgAppScore%',
-                  Icons.stars,
-                  Colors.orange,
-                  isDark,
-                ),
-              ];
+          // Initial loads have no invented counts; refresh keeps known cards.
+          if (_isLoadingStats && !_hasStats)
+            const SkeletonSummaryCards()
+          else if (_statsError != null)
+            LoadError(message: _statsError!, onRetry: _fetchGlobalStats)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cards = [
+                  _buildStatCard(
+                    'Total Users',
+                    '$_totalUsers',
+                    Icons.people,
+                    theme.actionColor,
+                    isDark,
+                    widget.onUsers,
+                  ),
+                  _buildStatCard(
+                    'Total Sessions',
+                    '$_totalSessions',
+                    Icons.mic,
+                    Colors.green,
+                    isDark,
+                    widget.onReviews,
+                  ),
+                  _buildStatCard(
+                    'Avg App Score',
+                    '$_avgAppScore%',
+                    Icons.stars,
+                    Colors.orange,
+                    isDark,
+                    widget.onReviews,
+                  ),
+                ];
 
-              if (constraints.maxWidth < 800) {
-                return Column(
+                if (constraints.maxWidth < 800) {
+                  return Column(
+                    children: [
+                      cards[0],
+                      const SizedBox(height: 16),
+                      cards[1],
+                      const SizedBox(height: 16),
+                      cards[2],
+                    ],
+                  );
+                }
+
+                return Row(
                   children: [
-                    cards[0],
-                    const SizedBox(height: 16),
-                    cards[1],
-                    const SizedBox(height: 16),
-                    cards[2],
+                    Expanded(child: cards[0]),
+                    const SizedBox(width: 20),
+                    Expanded(child: cards[1]),
+                    const SizedBox(width: 20),
+                    Expanded(child: cards[2]),
                   ],
                 );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: cards[0]),
-                  const SizedBox(width: 20),
-                  Expanded(child: cards[1]),
-                  const SizedBox(width: 20),
-                  Expanded(child: cards[2]),
-                ],
-              );
-            },
-          ),
+              },
+            ),
 
           const SizedBox(height: 40),
 
@@ -185,11 +212,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: theme.borderColor),
               ),
-              child: _isLoadingSessions
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryColor,
-                      ),
+              child: _isLoadingSessions && _recentSessions.isEmpty
+                  ? const SingleChildScrollView(
+                      child: SkeletonList(table: true, count: 6),
+                    )
+                  : _sessionsError != null
+                  ? LoadError(
+                      message: _sessionsError!,
+                      onRetry: _fetchRecentSessions,
                     )
                   : _recentSessions.isEmpty
                   ? Center(
@@ -216,6 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     context,
                                   ).copyWith(dividerColor: Colors.transparent),
                                   child: DataTable(
+                                    showCheckboxColumn: false,
                                     headingRowColor: WidgetStateProperty.all(
                                       theme.scaffoldColor,
                                     ),
@@ -260,10 +291,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           : 'Processed';
 
                                       return DataRow(
+                                        key: ValueKey(
+                                          'session-${session['_id']}',
+                                        ),
+                                        mouseCursor: WidgetStateProperty.all(
+                                          SystemMouseCursors.click,
+                                        ),
+                                        onSelectChanged: (_) =>
+                                            showSessionReview(
+                                              context,
+                                              Map<String, dynamic>.from(
+                                                session,
+                                              ),
+                                            ),
                                         color:
                                             WidgetStateProperty.resolveWith<
                                               Color?
                                             >((states) {
+                                              if (states.contains(
+                                                WidgetState.hovered,
+                                              )) {
+                                                return theme.actionColor
+                                                    .withValues(alpha: .12);
+                                              }
                                               return isDark
                                                   ? AppTheme.darkSurface
                                                   : theme.cardColor;
@@ -317,7 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 fontWeight: FontWeight.bold,
                                                 color: isPending
                                                     ? theme.subtleTextColor
-                                                    : AppTheme.primaryColor,
+                                                    : theme.actionColor,
                                               ),
                                             ),
                                           ),
@@ -361,7 +411,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _refreshData,
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: theme.actionColor,
         tooltip: 'Refresh Dashboard',
         child: const Icon(Icons.refresh, color: Colors.white),
       ),
@@ -374,63 +424,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     IconData icon,
     Color color,
     bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: isDark
-                        ? AppTheme.darkTextSecondary
-                        : Colors.grey.shade600,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppTheme.darkTextPrimary : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    VoidCallback? onTap,
+  ) => SummaryCard(
+    key: ValueKey('stat-$title'),
+    title: title,
+    value: value,
+    icon: icon,
+    color: color,
+    isDark: isDark,
+    onTap: onTap,
+  );
 }
