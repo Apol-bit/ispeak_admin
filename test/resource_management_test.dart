@@ -220,8 +220,20 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('filter-GuidedTask')));
       await tester.pumpAndSettle();
       final handle = find.byKey(const ValueKey('drag-GuidedTask'));
+      final destination = tester.getBottomLeft(
+        find.byKey(const ValueKey('resource-GuidedTask-2')),
+      );
+      final handleOffset =
+          tester.getCenter(handle).dy -
+          tester
+              .getTopLeft(find.byKey(const ValueKey('resource-GuidedTask')))
+              .dy;
       final gesture = await tester.startGesture(tester.getCenter(handle));
-      await gesture.moveBy(const Offset(0, 240));
+      await tester.pump(const Duration(milliseconds: 100));
+      // Move the proxy past the second card, accounting for unequal heights.
+      await gesture.moveTo(
+        Offset(tester.getCenter(handle).dx, destination.dy + handleOffset + 5),
+      );
       await tester.pump(const Duration(milliseconds: 500));
       await gesture.up();
       await tester.pumpAndSettle();

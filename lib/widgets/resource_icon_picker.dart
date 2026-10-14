@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 import '../theme/app_theme.dart';
 import 'resource_icon.dart';
@@ -88,16 +89,28 @@ class _IconPickerDialog extends StatefulWidget {
 }
 
 class _IconPickerDialogState extends State<_IconPickerDialog> {
+  final ScrollController _categoryScroll = ScrollController();
+  List<IconOption> _options = ResourceIcon.filtered('All', '');
   String _query = '';
   String _category = 'All';
   late String _selected = ResourceIcon.supports(widget.initialValue)
       ? widget.initialValue.trim()
       : ResourceIcon.fallbackName;
 
+  void _filter() {
+    _options = ResourceIcon.filtered(_category, _query);
+  }
+
+  @override
+  void dispose() {
+    _categoryScroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.of(context)!;
-    final options = ResourceIcon.filtered(_category, _query);
+    final options = _options;
     return Dialog(
       backgroundColor: theme.cardColor,
       surfaceTintColor: Colors.transparent,
@@ -124,7 +137,10 @@ class _IconPickerDialogState extends State<_IconPickerDialog> {
               TextField(
                 key: const ValueKey('icon-search'),
                 autofocus: true,
-                onChanged: (value) => setState(() => _query = value),
+                onChanged: (value) => setState(() {
+                  _query = value;
+                  _filter();
+                }),
                 style: TextStyle(color: theme.bodyTextColor),
                 decoration: InputDecoration(
                   hintText: 'Search icons...',
@@ -134,32 +150,50 @@ class _IconPickerDialogState extends State<_IconPickerDialog> {
                 ),
               ),
               const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final category in ResourceIcon.categories) ...[
-                      ChoiceChip(
-                        key: ValueKey('icon-category-$category'),
-                        label: Text(category),
-                        selected: _category == category,
-                        selectedColor: AppTheme.filterBlue,
-                        backgroundColor: theme.scaffoldColor,
-                        side: BorderSide(
-                          color: _category == category
-                              ? AppTheme.filterBlue
-                              : theme.borderColor,
-                        ),
-                        labelStyle: TextStyle(
-                          color: _category == category
-                              ? Colors.white
-                              : theme.bodyTextColor,
-                        ),
-                        onSelected: (_) => setState(() => _category = category),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
+              ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: PointerDeviceKind.values.toSet(),
+                  scrollbars: false,
+                ),
+                child: Scrollbar(
+                  controller: _categoryScroll,
+                  thumbVisibility: true,
+                  interactive: true,
+                  scrollbarOrientation: ScrollbarOrientation.bottom,
+                  child: SingleChildScrollView(
+                    key: const ValueKey('icon-category-scroll'),
+                    controller: _categoryScroll,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        for (final category in ResourceIcon.categories) ...[
+                          ChoiceChip(
+                            key: ValueKey('icon-category-$category'),
+                            label: Text(category),
+                            selected: _category == category,
+                            selectedColor: AppTheme.filterBlue,
+                            backgroundColor: theme.scaffoldColor,
+                            side: BorderSide(
+                              color: _category == category
+                                  ? AppTheme.filterBlue
+                                  : theme.borderColor,
+                            ),
+                            labelStyle: TextStyle(
+                              color: _category == category
+                                  ? Colors.white
+                                  : theme.bodyTextColor,
+                            ),
+                            onSelected: (_) => setState(() {
+                              _category = category;
+                              _filter();
+                            }),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

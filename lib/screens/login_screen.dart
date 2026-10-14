@@ -129,6 +129,14 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         }
+      } on ApiConfigurationException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('API configuration error: ${e.message}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

@@ -19,6 +19,66 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   late Future<List<dynamic>> _resourcesFuture;
   final Map<String, List<String>> _orderOverrides = {};
   final Set<String> _savingGroups = {};
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey<SliverReorderableListState>> _reorderKeys = {};
+  GlobalKey<SliverReorderableListState>? _activeReorder;
+  int? _dragIndex;
+  List<dynamic>? _derivedSource;
+  String? _derivedType;
+  String? _derivedSearch;
+  List<Map<String, dynamic>> _all = [];
+  Map<String, List<Map<String, dynamic>>> _groups = {};
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _stopDragScroll() {
+    if (_activeReorder != null && _scrollController.hasClients) {
+      // Stop the current short animateTo segment as well as the drag loop.
+      _scrollController.jumpTo(_scrollController.offset);
+    }
+  }
+
+  void _cancelDrag() {
+    _stopDragScroll();
+    _activeReorder?.currentState?.cancelReorder();
+    _activeReorder = null;
+    _dragIndex = null;
+  }
+
+  // Cache view data, not API responses. A fresh GET always invalidates it.
+  void _deriveGroups(List<dynamic> source) {
+    if (identical(source, _derivedSource) &&
+        _type == _derivedType &&
+        _search == _derivedSearch) {
+      return;
+    }
+    if (!identical(source, _derivedSource)) {
+      _all = source
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
+    }
+    _derivedSource = source;
+    _derivedType = _type;
+    _derivedSearch = _search;
+    final groups = <String, List<Map<String, dynamic>>>{};
+    for (final row in _all) {
+      final type = row['type'] as String;
+      if ((_type != 'All' && type != _type) ||
+          !row['title'].toString().toLowerCase().contains(_search)) {
+        continue;
+      }
+      final key = _groupKey(type, row['difficulty'] ?? 'None');
+      (groups[key] ??= []).add(row);
+    }
+    _groups = {
+      for (final entry in groups.entries)
+        entry.key: _orderedGroup(entry.value, entry.key),
+    };
+  }
 
   @override
   void initState() {
@@ -28,6 +88,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
   void _fetchResources() {
     _orderOverrides.clear();
+    _derivedType = null;
     setState(() {
       _resourcesFuture =
           ApiClient.get(Uri.parse('${ApiConfig.baseUrl}/resources')).then((
@@ -153,6 +214,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   ) async {
     if (_search.isNotEmpty) return;
     if (newIndex > oldIndex) newIndex--;
+    if (newIndex == oldIndex) return;
+    if (_savingGroups.contains(_groupKey(type, difficulty))) return;
     final reordered = [...current];
     final moved = reordered.removeAt(oldIndex);
     reordered.insert(newIndex, moved);
@@ -161,6 +224,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     final ids = reordered.map((row) => row['_id'].toString()).toList();
     setState(() {
       _orderOverrides[key] = ids;
+      _groups[key] = reordered;
       _savingGroups.add(key);
     });
     try {
@@ -185,6 +249,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
         } else {
           _orderOverrides[key] = previous;
         }
+        // Search/type may have changed while the save was in flight.
+        _derivedType = null;
         _savingGroups.remove(key);
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -393,37 +459,36 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     );
   }
 
-  Widget _resourceGroup(
+  List<Widget> _resourceGroup(
     String type,
     String difficulty,
-    List<Map<String, dynamic>> source,
+    List<Map<String, dynamic>> rows,
     ThemeProvider theme,
   ) {
     final key = _groupKey(type, difficulty);
-    final rows = _orderedGroup(source, key);
     final canReorder = _search.isEmpty && !_savingGroups.contains(key);
+    final reorderKey = _reorderKeys.putIfAbsent(
+      key,
+      () => GlobalKey<SliverReorderableListState>(),
+    );
     final label = type == 'GuidedTask' ? 'All Levels' : difficulty;
-    final cards = [
-      for (var index = 0; index < rows.length; index++)
-        _resourceCard(
-          rows[index],
-          theme,
-          order: index + 1,
-          dragIndex: index,
-          canReorder: canReorder,
-        ),
-    ];
-    return Column(
-      key: ValueKey('group-$key'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
+    Widget card(BuildContext context, int index) => _resourceCard(
+      rows[index],
+      theme,
+      order: index + 1,
+      dragIndex: index,
+      canReorder: canReorder,
+    );
+    return [
+      SliverToBoxAdapter(
+        key: ValueKey('group-$key'),
+        child: Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  '$label — ${rows.length} ${rows.length == 1 ? 'resource' : 'resources'}',
+                  '$label \u2014 ${rows.length} ${rows.length == 1 ? 'resource' : 'resources'}',
                   style: TextStyle(
                     color: theme.bodyTextColor,
                     fontWeight: FontWeight.w600,
@@ -439,21 +504,43 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
             ],
           ),
         ),
-        if (canReorder)
-          ReorderableListView(
-            key: ValueKey('reorder-$key'),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: (oldIndex, newIndex) =>
-                _reorderGroup(type, difficulty, rows, oldIndex, newIndex),
-            children: cards,
-          )
-        else
-          ...cards,
-        const SizedBox(height: 16),
-      ],
-    );
+      ),
+      if (canReorder)
+        SliverReorderableList(
+          key: reorderKey,
+          itemCount: rows.length,
+          itemBuilder: card,
+          // All groups share the actual viewport. Flutter owns edge scrolling,
+          // drag cancellation and gap updates, including virtualized children.
+          autoScrollerVelocityScalar: 20,
+          onReorderStart: (index) {
+            _activeReorder = reorderKey;
+            _dragIndex = index;
+          },
+          onReorderEnd: (newIndex) {
+            final oldIndex = _dragIndex;
+            // Flutter otherwise keeps edge scrolling through the 250ms drop
+            // animation. End the drag immediately and commit exactly once.
+            _cancelDrag();
+            if (oldIndex != null) {
+              _reorderGroup(type, difficulty, rows, oldIndex, newIndex);
+            }
+          },
+          proxyDecorator: (child, index, animation) => MouseRegion(
+            cursor: SystemMouseCursors.grabbing,
+            child: Material(
+              elevation: 6,
+              color: Colors.transparent,
+              child: child,
+            ),
+          ),
+          onReorder: (oldIndex, newIndex) =>
+              _reorderGroup(type, difficulty, rows, oldIndex, newIndex),
+        )
+      else
+        SliverList.builder(itemCount: rows.length, itemBuilder: card),
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+    ];
   }
 
   @override
@@ -544,88 +631,77 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                   ),
                 );
               }
-              final all = (snapshot.data ?? [])
-                  .map((r) => Map<String, dynamic>.from(r as Map))
-                  .toList();
-              final filtered = all
-                  .where(
-                    (r) =>
-                        (_type == 'All' || r['type'] == _type) &&
-                        r['title'].toString().toLowerCase().contains(_search),
-                  )
-                  .toList();
-              if (filtered.isEmpty) {
+              _deriveGroups(snapshot.data ?? const []);
+              if (_groups.isEmpty) {
                 return Center(
                   child: Text(
-                    all.isEmpty
+                    _all.isEmpty
                         ? 'No resources yet. Add a resource to get started.'
                         : 'No resources found. Try another type or search.',
                     style: TextStyle(color: theme.bodyTextColor),
                   ),
                 );
               }
-              return ListView(
-                children: [
-                  if (_search.isNotEmpty)
-                    Container(
-                      key: const ValueKey('reorder-disabled-message'),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.filterBlue.withValues(alpha: .08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Clear search to reorder resources.',
-                        style: TextStyle(color: theme.bodyTextColor),
-                      ),
-                    ),
-                  for (final type in _types)
-                    if (filtered.any((r) => r['type'] == type)) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Wrap(
-                          spacing: 12,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            _badge(_label(type), _categoryColor(type)),
-                            Text(
-                              '${filtered.where((r) => r['type'] == type).length} resources',
-                              key: ValueKey('count-$type'),
-                              style: TextStyle(color: theme.subtleTextColor),
-                            ),
-                          ],
+              return Listener(
+                onPointerUp: (_) => _stopDragScroll(),
+                onPointerCancel: (_) => _cancelDrag(),
+                child: CustomScrollView(
+                  key: const ValueKey('resource-scroll'),
+                  controller: _scrollController,
+                  slivers: [
+                    if (_search.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          key: const ValueKey('reorder-disabled-message'),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.filterBlue.withValues(alpha: .08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Clear search to reorder resources.',
+                            style: TextStyle(color: theme.bodyTextColor),
+                          ),
                         ),
                       ),
-                      if (type == 'GuidedTask')
-                        _resourceGroup(
-                          type,
-                          'All Levels',
-                          filtered.where((row) => row['type'] == type).toList(),
-                          theme,
-                        )
-                      else
-                        for (final difficulty in _difficulties)
-                          if (filtered.any(
-                            (row) =>
-                                row['type'] == type &&
-                                (row['difficulty'] ?? 'None') == difficulty,
-                          ))
-                            _resourceGroup(
+                    for (final type in _types)
+                      if (_groups.keys.any(
+                        (key) => key == type || key.startsWith('$type|'),
+                      )) ...[
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Wrap(
+                              spacing: 12,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                _badge(_label(type), _categoryColor(type)),
+                                Text(
+                                  '${_groups.entries.where((entry) => entry.key == type || entry.key.startsWith('$type|')).fold<int>(0, (count, entry) => count + entry.value.length)} resources',
+                                  key: ValueKey('count-$type'),
+                                  style: TextStyle(
+                                    color: theme.subtleTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        for (final difficulty
+                            in type == 'GuidedTask'
+                                ? ['All Levels']
+                                : _difficulties)
+                          if (_groups.containsKey(_groupKey(type, difficulty)))
+                            ..._resourceGroup(
                               type,
                               difficulty,
-                              filtered
-                                  .where(
-                                    (row) =>
-                                        row['type'] == type &&
-                                        (row['difficulty'] ?? 'None') ==
-                                            difficulty,
-                                  )
-                                  .toList(),
+                              _groups[_groupKey(type, difficulty)]!,
                               theme,
                             ),
-                    ],
-                ],
+                      ],
+                  ],
+                ),
               );
             },
           ),

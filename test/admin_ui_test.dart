@@ -24,6 +24,7 @@ class Fixture {
   bool fail = false;
   bool failReorder = false;
   bool empty = false;
+  int recentSessionCount = 1;
   final requests = <http.Request>[];
   final resources = <Map<String, dynamic>>[
     for (final type in ['Challenge', 'GuidedTask', 'Script'])
@@ -110,7 +111,18 @@ class Fixture {
       body = empty ? [] : resources;
     } else if (route.endsWith('/admin/recent-sessions') ||
         route.endsWith('/admin/ai-logs')) {
-      body = empty ? [] : [session];
+      body = empty
+          ? []
+          : recentSessionCount == 1
+          ? [session]
+          : List.generate(
+              recentSessionCount,
+              (index) => {
+                ...session,
+                '_id':
+                    '507f1f77bcf86cd7994390${index.toString().padLeft(2, '0')}',
+              },
+            );
     }
     return http.Response(
       jsonEncode(body),
@@ -187,6 +199,49 @@ void main() {
   );
 
   for (final dark in [false, true]) {
+    testWidgets('100 dashboard rows at enlarged text dark=$dark', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(768, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final data = Fixture()..recentSessionCount = 100;
+      await http.runWithClient(() async {
+        await tester.pumpWidget(
+          app(
+            const MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(2)),
+              child: DashboardScreen(),
+            ),
+            GlobalKey(),
+            dark: dark,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<DataTable>(find.byType(DataTable)).rows,
+          hasLength(100),
+        );
+        expect(tester.takeException(), isNull);
+        final lastIdCell = find.text('507f1f77...').last;
+        await tester.ensureVisible(lastIdCell);
+        await tester.pumpAndSettle();
+        await tester.tap(lastIdCell);
+        await tester.pumpAndSettle();
+        expect(find.text('Session Analysis Details'), findsOneWidget);
+        expect(find.text('507f1f77bcf86cd799439099'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(
+          data.requests.where((r) => r.url.path.endsWith('/stats')),
+          hasLength(1),
+        );
+        expect(
+          data.requests.where((r) => r.url.path.endsWith('/recent-sessions')),
+          hasLength(1),
+        );
+      }, data.client);
+    });
+
     testWidgets('narrow skeletons and resource editor dark=$dark', (
       tester,
     ) async {

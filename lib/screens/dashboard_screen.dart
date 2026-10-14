@@ -230,6 +230,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
+                        // Avoid intrinsic measurement of all seven cells in every
+                        // row. Retain horizontal scrolling at narrow widths and
+                        // reserve more space when accessibility text is enlarged.
+                        final scale =
+                            MediaQuery.textScalerOf(context).scale(14) / 14;
+                        final widths = [
+                          224.0,
+                          168.0,
+                          88.0,
+                          96.0,
+                          96.0,
+                          96.0,
+                          148.0,
+                        ].map((width) => width * scale).toList();
+                        final total = widths.reduce((a, b) => a + b);
+                        final stretch = constraints.maxWidth > total
+                            ? constraints.maxWidth / total
+                            : 1.0;
+                        TableColumnWidth columnWidth(int index) =>
+                            FixedColumnWidth(widths[index] * stretch);
                         return ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           // ---> THE VERTICAL SCROLL FIX <---
@@ -257,18 +277,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     columnSpacing: 24.0,
                                     horizontalMargin: 24.0,
                                     dataRowMaxHeight: 60,
-                                    columns: const [
+                                    columns: [
                                       DataColumn(
-                                        label: Expanded(
+                                        columnWidth: columnWidth(0),
+                                        label: const Expanded(
                                           child: Text('Date & Time'),
                                         ),
                                       ),
-                                      DataColumn(label: Text('Session ID')),
-                                      DataColumn(label: Text('WPM')),
-                                      DataColumn(label: Text('Clarity')),
-                                      DataColumn(label: Text('Energy')),
-                                      DataColumn(label: Text('Overall')),
-                                      DataColumn(label: Text('Status')),
+                                      DataColumn(
+                                        columnWidth: columnWidth(1),
+                                        label: const Flexible(
+                                          child: Text('Session ID'),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        columnWidth: columnWidth(2),
+                                        label: const Flexible(
+                                          child: Text('WPM'),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        columnWidth: columnWidth(3),
+                                        label: const Flexible(
+                                          child: Text('Clarity'),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        columnWidth: columnWidth(4),
+                                        label: const Flexible(
+                                          child: Text('Energy'),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        columnWidth: columnWidth(5),
+                                        label: const Flexible(
+                                          child: Text('Overall'),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        columnWidth: columnWidth(6),
+                                        label: const Flexible(
+                                          child: Text('Status'),
+                                        ),
+                                      ),
                                     ],
                                     rows: _recentSessions.map((session) {
                                       int overall =
